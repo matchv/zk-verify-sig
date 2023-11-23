@@ -1,6 +1,8 @@
 package Circuito
 
 import (
+	"math/big"
+
 	tedwards "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/algebra/native/twistededwards"
@@ -8,7 +10,7 @@ import (
 	"github.com/consensys/gnark/std/math/uints"
 )
 
-const NVAL = 4
+const NVAL = 8
 
 type Circuit struct {
 	R   [NVAL]twistededwards.Point `gnark:",public"`
@@ -30,27 +32,62 @@ func HashToValue(uapi *uints.BinaryField[uints.U64], api frontend.API, hash []ui
 	return res
 }
 
+var q *big.Int = new(big.Int)
+var a *big.Int = new(big.Int)
+var d *big.Int = new(big.Int)
+var ord *big.Int = new(big.Int)
+var cofactor *big.Int = new(big.Int)
+var bX *big.Int = new(big.Int)
+var bY *big.Int = new(big.Int)
+
+func init() {
+	var temp *big.Int = new(big.Int)
+	q.Exp(big.NewInt(2), big.NewInt(255), nil)
+	q.Sub(q, big.NewInt(19))
+
+	a.Sub(q, big.NewInt(1))
+	d.Mul(big.NewInt(121665), temp.ModInverse(big.NewInt(121666), q))
+
+	temp.SetString("27742317777372353535851937790883648493", 10)
+	ord.Exp(big.NewInt(2), big.NewInt(252), nil)
+	ord.Add(ord, temp)
+
+	bX.Set(big.NewInt(9))
+	bY.Mul(big.NewInt(4), temp.ModInverse(big.NewInt(5), q))
+}
+
 func (circuit *Circuit) Define(api frontend.API) error {
+
 	for i := 0; i < NVAL; i++ {
 		curve, _ := twistededwards.NewEdCurve(api, tedwards.BN254)
+
+		params := curve.Params()
+
+		params.A.Set(a)
+		params.D.Set(d)
+		params.Cofactor.Set(cofactor)
+		params.Order.Set(ord)
+		params.Base[0].Set(bX)
+		params.Base[1].Set(bY)
+
 		curve.AssertIsOnCurve(circuit.R[i])
 		curve.AssertIsOnCurve(circuit.A[i])
-		params := curve.Params()
+
 		api.AssertIsLessOrEqual(circuit.S[i], params.Order)
 		api.AssertIsDifferent(circuit.S[i], params.Order)
 		var B twistededwards.Point
 		B.X = params.Base[0]
 		B.Y = params.Base[1]
 
-		sha256, _ := sha3.New256(api)
+		sha512, _ := sha3.New512(api)
 		uapi, _ := uints.New[uints.U64](api)
 
-		sha256.Write(Get(uapi, circuit.R[i].X))
-		sha256.Write(Get(uapi, circuit.R[i].Y))
-		sha256.Write(Get(uapi, circuit.A[i].X))
-		sha256.Write(Get(uapi, circuit.A[i].Y))
-		sha256.Write(Get(uapi, circuit.Msg[i]))
-		k := HashToValue(uapi, api, sha256.Sum()) //uapi.ToValue(uapi.PackMSB(sha256.Sum()...))
+		sha512.Write(Get(uapi, circuit.R[i].X))
+		sha512.Write(Get(uapi, circuit.R[i].Y))
+		sha512.Write(Get(uapi, circuit.A[i].X))
+		sha512.Write(Get(uapi, circuit.A[i].Y))
+		sha512.Write(Get(uapi, circuit.Msg[i]))
+		k := HashToValue(uapi, api, sha512.Sum()) //uapi.ToValue(uapi.PackMSB(sha256.Sum()...))
 
 		B = curve.ScalarMul(B, api.Mul(k, frontend.Variable(8)))
 
