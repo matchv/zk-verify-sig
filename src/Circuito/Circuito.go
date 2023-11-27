@@ -1,8 +1,7 @@
 package Circuito
 
 import (
-	"fmt"
-	"math/big"
+	Curve "ed25519/src/CurveEd25519"
 
 	tedwards "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/frontend"
@@ -33,62 +32,21 @@ func HashToValue(uapi *uints.BinaryField[uints.U64], api frontend.API, hash []ui
 	return res
 }
 
-var q *big.Int = new(big.Int)
-var a *big.Int = new(big.Int)
-var d *big.Int = new(big.Int)
-var ord *big.Int = new(big.Int)
-var cofactor *big.Int = new(big.Int)
-var bX *big.Int = new(big.Int)
-var bY *big.Int = new(big.Int)
-var bu *big.Int = new(big.Int)
-var bv *big.Int = new(big.Int)
-
-func OnCurve(X *big.Int, Y *big.Int) bool {
-	//fmt.Println("On Curve")
-	X2 := big.NewInt(0).Exp(X, big.NewInt(2), nil)
-	Y2 := big.NewInt(0).Exp(Y, big.NewInt(2), nil)
-	ladoIzq := big.NewInt(0).Add(big.NewInt(0).Mul(X2, a), Y2)
-	ladoDer := big.NewInt(0).Add(big.NewInt(1), big.NewInt(0).Mul(
-		big.NewInt(0).Mul(d, X2), Y2))
-	return ladoIzq.Cmp(ladoDer) == 0
-}
-
 // 5f51e65e475f794b1fe122d388b72eb36dc2b28192839e4dd6163a5d81312c14
-func init() {
-	fmt.Println("Iniciando...")
-	var temp *big.Int = new(big.Int)
-	q.Exp(big.NewInt(2), big.NewInt(255), nil)
-	q.Sub(q, big.NewInt(19))
-
-	a.SetUint64(486664)
-	d.SetUint64(486660)
-	temp.SetString("27742317777372353535851937790883648493", 10)
-	ord.Exp(big.NewInt(2), big.NewInt(252), nil)
-	ord.Add(ord, temp)
-
-	bu.Set(big.NewInt(9))
-	bv.SetString("5f51e65e475f794b1fe122d388b72eb36dc2b28192839e4dd6163a5d81312c14", 16)
-
-	bX.Mul(bu, big.NewInt(0).ModInverse(bv, q))
-	bY.Mul(big.NewInt(1).Add(big.NewInt(-1), bu),
-		big.NewInt(0).ModInverse(big.NewInt(0).Add(big.NewInt(1), bu), q))
-
-	bX.Mod(bX, q)
-	bY.Mod(bY, q)
-}
 
 func (circuit *Circuit) Define(api frontend.API) error {
 
+	api.Println("CURVE Q ", Curve.Q)
 	for i := 0; i < NVAL; i++ {
 		curve, _ := twistededwards.NewEdCurve(api, tedwards.BN254)
 
 		params := curve.Params()
-		params.A.Set(a)
-		params.D.Set(d)
-		params.Cofactor.Set(cofactor)
-		params.Order.Set(ord)
-		params.Base[0].Set(bX)
-		params.Base[1].Set(bY)
+		params.A.Set(Curve.A)
+		params.D.Set(Curve.D)
+		params.Cofactor.Set(Curve.Cofactor)
+		params.Order.Set(Curve.Ord)
+		params.Base[0].Set(Curve.BX)
+		params.Base[1].Set(Curve.BY)
 
 		curve.AssertIsOnCurve(circuit.R[i])
 		curve.AssertIsOnCurve(circuit.A[i])
