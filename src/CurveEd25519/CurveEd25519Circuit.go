@@ -17,35 +17,53 @@ const BUC = "9"
 const BVC = "43114425171068552920764898935933967039370386198203806730763910166200978582548"
 
 type PointCircuit struct {
-	X, Y frontend.Variable
+	X, Y Element
 }
 
-var BASEC = PointCircuit{BXC, BYC}
+func PointToCircuit(p Point) PointCircuit {
+	return PointCircuit{X: BigIntToElement(p.X), Y: BigIntToElement(p.Y)}
+}
 
-func Inverse(b frontend.Variable, api frontend.API) frontend.Variable {
-	b0 := b
-	res := frontend.Variable(1)
-	for q, _ := big.NewInt(0).SetString("57896044618658097711785492504343953926634992332820282019728792003956564819947", 10); q.Cmp(big.NewInt(0)) > 0; q.Div(q, big.NewInt(2)) {
-		if big.NewInt(0).Mod(q, big.NewInt(2)).Cmp(big.NewInt(0)) == 1 {
-			res = ModCircuit(api.Mul(res, b), api)
-		}
-		b = ModCircuit(api.Mul(b, b), api)
+func GetBaseCircuit() PointCircuit {
+	return PointCircuit{StringToElement(BXC), StringToElement(BYC)}
+}
+
+// var BASEC
+func AddCircuit(p1, p2 PointCircuit, api frontend.API) PointCircuit {
+	X := ProdElement(
+		AddElement(ProdElement(p1.X, p2.Y, api), ProdElement(p1.Y, p2.X, api), api),
+		InverseElement(AddElement(BigIntToElement(big.NewInt(1)),
+			ProdElements([]Element{StringToElement(DC), p1.X, p1.Y, p2.X, p2.Y}, api), api), api), api)
+
+	Y := ProdElement(AddElement(ProdElement(p1.Y, p2.Y, api),
+		ProdElements([]Element{StringToElement("57896044618658097711785492504343953926634992332820282019728792003956564819948"), StringToElement(AC), p1.X, p2.X}, api), api),
+		InverseElement(AddElement(BigIntToElement(big.NewInt(1)), ProdElements([]Element{StringToElement("57896044618658097711785492504343953926634992332820282019728792003956564819948"), StringToElement(DC), p1.X, p1.Y, p2.X, p2.Y}, api), api), api), api)
+
+	return PointCircuit{X, Y}
+}
+
+func MulByScalarCircuit(p PointCircuit, s Element, api frontend.API) PointCircuit {
+	exp := BitsElement(AddElement(StringToElement("57896044618658097711785492504343953926634992332820282019728792003956564819948"), s, api), api)
+	res := p
+	for i := 0; i < 256; i++ {
+		temp := AddCircuit(res, p, api)
+
+		res.X.V[0] = api.Select(exp[i], temp.X.V[0], res.X.V[0])
+		res.X.V[1] = api.Select(exp[i], temp.X.V[1], res.X.V[1])
+		res.Y.V[0] = api.Select(exp[i], temp.Y.V[0], res.Y.V[0])
+		res.Y.V[1] = api.Select(exp[i], temp.Y.V[1], res.Y.V[1])
+
+		p = AddCircuit(p, p, api)
 	}
-	Prod := api.Mul(b0, res)
-	Prod = ModCircuit(Prod, api)
-	api.AssertIsEqual(Prod, frontend.Variable(1))
 	return res
 }
 
-func AddCircuit(p1, p2 PointCircuit, api frontend.API) PointCircuit {
-	X := api.Mul(
-		api.Add(api.Mul(p1.X, p2.Y), api.Mul(p1.Y, p2.X)),
-		Inverse(api.Add(frontend.Variable(1), api.Mul(DC, p1.X, p2.X, p1.Y, p2.Y)), api))
-	Y := api.Mul(
-		api.Add(api.Mul(p1.Y, p2.Y), api.Mul(frontend.Variable(-1), AC, p1.X, p2.X)),
-		Inverse(api.Add(frontend.Variable(1), api.Mul(frontend.Variable(-1), DC, p1.X, p1.Y, p2.X, p2.Y)), api))
+func OnCurveCircuit(p PointCircuit, api frontend.API) {
+	izq := ProdElement(StringToElement(AC), ProdElement(p.X, p.X, api), api)
+	izq = AddElement(izq, ProdElement(p.Y, p.Y, api), api)
 
-	X = ModCircuit(X, api)
-	Y = ModCircuit(Y, api)
-	return PointCircuit{X, Y}
+	der := ProdElement(StringToElement(DC), ProdElements([]Element{p.X, p.X, p.Y, p.Y}, api), api)
+	der = AddElement(der, BigIntToElement(big.NewInt(1)), api)
+
+	AssertEqualElement(izq, der, api)
 }

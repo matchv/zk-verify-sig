@@ -39,7 +39,7 @@ type Point struct {
 }
 
 func (p *Point) Bytes() []byte {
-	return append(p.X.Bytes(), p.Y.Bytes()...)
+	return append(p.X.FillBytes(make([]byte, 32)), p.Y.FillBytes(make([]byte, 32))...)
 }
 
 var BASE Point

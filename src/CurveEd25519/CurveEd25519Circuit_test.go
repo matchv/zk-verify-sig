@@ -7,8 +7,6 @@ import (
 
 	//"github.com/rs/zerolog"
 
-	"math/big"
-
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
@@ -27,8 +25,8 @@ type CircuitEqualSum struct { // Test A + B = Sum
 
 func (circuit *CircuitEqualSum) Define(api frontend.API) error {
 	AB := AddCircuit(circuit.A, circuit.B, api)
-	api.AssertIsEqual(AB.X, circuit.Sum.X)
-	api.AssertIsEqual(AB.Y, circuit.Sum.Y)
+	AssertEqualElement(AB.X, circuit.Sum.X, api)
+	AssertEqualElement(AB.Y, circuit.Sum.Y, api)
 	return nil
 }
 
@@ -64,31 +62,32 @@ func TestEqualSum(t *testing.T) {
 	}
 }
 
-type CircuitInverse struct { // Test A * A^-1 = 1
-	A    frontend.Variable
-	InvA frontend.Variable
+type CircuitEqualProd struct { // Test A * B = Prod
+	A    PointCircuit `gnark:",public"`
+	S    Element      `gnark:",public"`
+	Prod PointCircuit `gnark:",public"`
 }
 
-func (circuit *CircuitInverse) Define(api frontend.API) error {
-	R := api.Mul(circuit.A, circuit.InvA)
-	R = ModCircuit(R, api)
-	api.AssertIsEqual(R, frontend.Variable(1))
+func (circuit *CircuitEqualProd) Define(api frontend.API) error {
+	AB := MulByScalarCircuit(circuit.A, circuit.S, api)
+	AssertEqualElement(AB.X, circuit.Prod.X, api)
+	AssertEqualElement(AB.Y, circuit.Prod.Y, api)
 	return nil
 }
 
-func TestInverse(t *testing.T) {
-	A, _ := crand.Int(crand.Reader, Q)
-	if A.Cmp(big.NewInt(0)) == 0 {
-		A = big.NewInt(1)
+func TestEqualProd(t *testing.T) {
+	for nt := 0; nt < 10; nt++ {
+		A := BASE
+		s, _ := crand.Int(crand.Reader, Q)
+		Prod := MulByScalar(A, s)
+		if OnCurve(Prod.X, Prod.Y) == false {
+			t.Errorf("Error in Prod in Curve")
+		}
+		assert := test.NewAssert(t)
+		assert.NoError(test.IsSolved(&CircuitEqualProd{}, &CircuitEqualProd{
+			A:    PointToCircuit(A),
+			S:    BigIntToElement(s),
+			Prod: PointToCircuit(Prod),
+		}, ecc.BN254.ScalarField()))
 	}
-	InvA := big.NewInt(0).Exp(A, big.NewInt(0).Sub(Q, big.NewInt(2)), Q)
-	if big.NewInt(0).Mod(big.NewInt(0).Mul(A, InvA), Q).Cmp(big.NewInt(1)) != 0 {
-		t.Errorf("Error in Big Int Inverse")
-	}
-	assert := test.NewAssert(t)
-	assert.NoError(test.IsSolved(&CircuitInverse{}, &CircuitInverse{
-		A:    frontend.Variable(A),
-		InvA: frontend.Variable(InvA),
-	}, ecc.BN254.ScalarField()))
-
 }

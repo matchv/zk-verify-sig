@@ -3,31 +3,33 @@ package Circuito
 import (
 	Curve "ed25519/src/CurveEd25519"
 
-	tedwards "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/frontend"
-	"github.com/consensys/gnark/std/algebra/native/twistededwards"
 	"github.com/consensys/gnark/std/hash/sha3"
 	"github.com/consensys/gnark/std/math/uints"
 )
 
-const NVAL = 8
+const NVAL = 1
 
 type Circuit struct {
-	R   [NVAL]twistededwards.Point `gnark:",public"`
-	S   [NVAL]frontend.Variable    `gnark:",public"`
-	A   [NVAL]twistededwards.Point `gnark:",public"`
-	Msg [NVAL]frontend.Variable    `gnark:",public"`
+	R   [NVAL]Curve.PointCircuit `gnark:",public"`
+	S   [NVAL]Curve.Element      `gnark:",public"`
+	A   [NVAL]Curve.PointCircuit `gnark:",public"`
+	Msg [NVAL]Curve.Element      `gnark:",public"`
 }
 
 func Get(uapi *uints.BinaryField[uints.U64], X frontend.Variable) []uints.U8 {
 	return uapi.UnpackMSB(uapi.ValueOf(X))
 }
 
-func HashToValue(uapi *uints.BinaryField[uints.U64], api frontend.API, hash []uints.U8) frontend.Variable {
-	res := frontend.Variable(0)
+func HashToValue(uapi *uints.BinaryField[uints.U64], api frontend.API, hash []uints.U8) Curve.Element {
+	res := Curve.StringToElement("0")
+	api.Println("RES 0 : ", res.V[0], " ", res.V[1])
 	for i := 0; i < len(hash); i++ {
-		res = api.Mul(res, frontend.Variable(256))
-		res = api.Add(res, hash[i].Val)
+		res = Curve.ProdElement(res, Curve.StringToElement("256"), api)
+		res = Curve.AddElement(res, Curve.Element{[2]frontend.Variable{hash[i].Val, frontend.Variable(0)}}, api)
+		api.Println("RES ", res.V[0], " ", res.V[1])
+		//res = api.Mul(res, frontend.Variable(256))
+		//res = api.Add(res, hash[i].Val)
 	}
 	return res
 }
@@ -38,42 +40,46 @@ func (circuit *Circuit) Define(api frontend.API) error {
 
 	api.Println("CURVE Q ", Curve.Q)
 	for i := 0; i < NVAL; i++ {
-		curve, _ := twistededwards.NewEdCurve(api, tedwards.BN254)
 
-		params := curve.Params()
-		params.A.Set(Curve.A)
-		params.D.Set(Curve.D)
-		params.Cofactor.Set(Curve.Cofactor)
-		params.Order.Set(Curve.Ord)
-		params.Base[0].Set(Curve.BX)
-		params.Base[1].Set(Curve.BY)
+		Curve.OnCurveCircuit(circuit.R[i], api)
+		Curve.OnCurveCircuit(circuit.A[i], api)
+		//curve.AssertIsOnCurve(circuit.R[i])
+		//curve.AssertIsOnCurve(circuit.A[i])
 
-		curve.AssertIsOnCurve(circuit.R[i])
-		curve.AssertIsOnCurve(circuit.A[i])
-
-		api.AssertIsLessOrEqual(circuit.S[i], params.Order)
-		api.AssertIsDifferent(circuit.S[i], params.Order)
-		var B twistededwards.Point
-		B.X = params.Base[0]
-		B.Y = params.Base[1]
+		//api.AssertIsLessOrEqual(circuit.S[i], params.Order)
+		//api.AssertIsDifferent(circuit.S[i], params.Order)
+		B := Curve.GetBaseCircuit()
 
 		sha512, _ := sha3.New512(api)
 		uapi, _ := uints.New[uints.U64](api)
 
-		sha512.Write(Get(uapi, circuit.R[i].X))
-		sha512.Write(Get(uapi, circuit.R[i].Y))
-		sha512.Write(Get(uapi, circuit.A[i].X))
-		sha512.Write(Get(uapi, circuit.A[i].Y))
-		sha512.Write(Get(uapi, circuit.Msg[i]))
-		k := HashToValue(uapi, api, sha512.Sum()) //uapi.ToValue(uapi.PackMSB(sha256.Sum()...))
+		sha512.Write(Curve.ElementToUint8(circuit.R[i].X, api, uapi))
+		sha512.Write(Curve.ElementToUint8(circuit.R[i].Y, api, uapi))
+		sha512.Write(Curve.ElementToUint8(circuit.A[i].X, api, uapi))
+		sha512.Write(Curve.ElementToUint8(circuit.A[i].Y, api, uapi))
+		sha512.Write(Curve.ElementToUint8(circuit.Msg[i], api, uapi))
 
-		B = curve.ScalarMul(B, api.Mul(k, frontend.Variable(8)))
+		temp := sha512.Sum()
+		for j := 0; j < len(temp); j++ {
+			api.Println(temp[j].Val, " ")
+		}
+		k := HashToValue(uapi, api, temp) //uapi.ToValue(uapi.PackMSB(sha256.Sum()...))
 
-		A := curve.Add(curve.ScalarMul(circuit.R[i], frontend.Variable(8)),
-			curve.ScalarMul(circuit.A[i], api.Mul(k, frontend.Variable(8))))
+		api.Println("K ", k.V[0], " ", k.V[1])
 
-		api.AssertIsEqual(A.X, B.X)
-		api.AssertIsEqual(A.Y, B.Y)
+		B = Curve.MulByScalarCircuit(B, Curve.ProdElement(k, Curve.StringToElement("8"), api), api)
+		//B = curve.ScalarMul(B, api.Mul(k, frontend.Variable(8)))
+
+		A := Curve.AddCircuit(
+			Curve.MulByScalarCircuit(circuit.R[i], Curve.StringToElement("8"), api),
+			Curve.MulByScalarCircuit(circuit.A[i], Curve.ProdElement(k, Curve.StringToElement("8"), api), api), api)
+		//A := curve.Add(curve.ScalarMul(circuit.R[i], frontend.Variable(8)),
+		//	curve.ScalarMul(circuit.A[i], api.Mul(k, frontend.Variable(8))))
+
+		Curve.AssertEqualElement(A.X, B.X, api)
+		Curve.AssertEqualElement(A.Y, B.Y, api)
+		//api.AssertIsEqual(A.X, B.X)
+		//api.AssertIsEqual(A.Y, B.Y)
 	}
 	return nil
 }

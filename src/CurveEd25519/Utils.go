@@ -87,7 +87,7 @@ func ElementoToBigInt(e fr.Element) *big.Int {
 	return new(big.Int).SetBytes(ToSlice(e.Bytes()))
 }
 
-func Modulus(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
+func HintModulus(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
 	result[0].Mod(inputs[0], inputs[1])
 	result[1].Div(inputs[0], inputs[1])
 	return nil
@@ -97,11 +97,7 @@ func ModCircuit(a frontend.Variable, api frontend.API) frontend.Variable {
 	//c := api.Div(a, QC)
 	//res := api.Sub(a, api.Mul(c, QC))
 	var res []frontend.Variable
-	res, _ = api.Compiler().NewHint(Modulus, 2, a, QC)
+	res, _ = api.Compiler().NewHint(HintModulus, 2, a, QC)
 	api.AssertIsEqual(api.Add(api.Mul(res[1], QC), res[0]), a)
 	return res[0]
-}
-
-func PointToCircuit(p Point) PointCircuit {
-	return PointCircuit{X: frontend.Variable(p.X), Y: frontend.Variable(p.Y)}
 }
