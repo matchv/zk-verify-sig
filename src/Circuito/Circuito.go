@@ -21,24 +21,11 @@ func Get(uapi *uints.BinaryField[uints.U64], X frontend.Variable) []uints.U8 {
 	return uapi.UnpackMSB(uapi.ValueOf(X))
 }
 
-func HashToValue(uapi *uints.BinaryField[uints.U64], api frontend.API, hash []uints.U8) Curve.Element {
-	res := Curve.StringToElement("0")
-	api.Println("RES 0 : ", res.V[0], " ", res.V[1])
-	for i := 0; i < len(hash); i++ {
-		res = Curve.ProdElement(res, Curve.StringToElement("256"), api)
-		res = Curve.AddElement(res, Curve.Element{[2]frontend.Variable{hash[i].Val, frontend.Variable(0)}}, api)
-		api.Println("RES ", res.V[0], " ", res.V[1])
-		//res = api.Mul(res, frontend.Variable(256))
-		//res = api.Add(res, hash[i].Val)
-	}
-	return res
-}
-
 // 5f51e65e475f794b1fe122d388b72eb36dc2b28192839e4dd6163a5d81312c14
 
 func (circuit *Circuit) Define(api frontend.API) error {
 
-	api.Println("CURVE Q ", Curve.Q)
+	//	api.Println("CURVE Q ", Curve.Q)
 	for i := 0; i < NVAL; i++ {
 
 		Curve.OnCurveCircuit(circuit.R[i], api)
@@ -60,12 +47,12 @@ func (circuit *Circuit) Define(api frontend.API) error {
 		sha512.Write(Curve.ElementToUint8(circuit.Msg[i], api, uapi))
 
 		temp := sha512.Sum()
-		for j := 0; j < len(temp); j++ {
+		/*for j := 0; j < len(temp); j++ {
 			api.Println(temp[j].Val, " ")
-		}
-		k := HashToValue(uapi, api, temp) //uapi.ToValue(uapi.PackMSB(sha256.Sum()...))
+		}*/
+		k := Curve.HashToValue(uapi, api, temp) //uapi.ToValue(uapi.PackMSB(sha256.Sum()...))
 
-		api.Println("K ", k.V[0], " ", k.V[1])
+		//api.Println("K ", k.V[0], " ", k.V[1])
 
 		B = Curve.MulByScalarCircuit(B, Curve.ProdElement(k, Curve.StringToElement("8"), api), api)
 		//B = curve.ScalarMul(B, api.Mul(k, frontend.Variable(8)))

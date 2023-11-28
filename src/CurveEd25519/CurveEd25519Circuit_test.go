@@ -14,7 +14,9 @@ import (
 	//"github.com/consensys/gnark/std/algebra/fields_bls12377"
 	crand "crypto/rand"
 	"testing"
+
 	//"github.com/consensys/gnark-crypto/ecc/bls12-377/fptower"
+	"github.com/consensys/gnark/std/math/uints"
 )
 
 type CircuitEqualSum struct { // Test A + B = Sum
@@ -88,6 +90,49 @@ func TestEqualProd(t *testing.T) {
 			A:    PointToCircuit(A),
 			S:    BigIntToElement(s),
 			Prod: PointToCircuit(Prod),
+		}, ecc.BN254.ScalarField()))
+	}
+}
+
+type CircuitPointToBytes struct { // Test PointToBytes
+	A  PointCircuit `gnark:",public"`
+	UA [64]uints.U8 `gnark:",public"`
+}
+
+func (circuit *CircuitPointToBytes) Define(api frontend.API) error {
+	uapi, _ := uints.New[uints.U64](api)
+	X := HashToValue(uapi, api, circuit.UA[0:32])
+	Y := HashToValue(uapi, api, circuit.UA[32:64])
+	AssertEqualElement(X, circuit.A.X, api)
+	AssertEqualElement(Y, circuit.A.Y, api)
+
+	UX := ElementToUint8(circuit.A.X, api, uapi)
+	UY := ElementToUint8(circuit.A.Y, api, uapi)
+	for i := 0; i < 32; i++ {
+		uapi.ByteAssertEq(UX[i], circuit.UA[i])
+		uapi.ByteAssertEq(UY[i], circuit.UA[i+32])
+	}
+
+	return nil
+}
+
+func TestPointToBytes(t *testing.T) {
+	for nt := 0; nt < 10; nt++ {
+		s, _ := crand.Int(crand.Reader, Q)
+		A := IntToPoint(s)
+		bX := A.X.FillBytes(make([]byte, 32))
+		bY := A.Y.FillBytes(make([]byte, 32))
+
+		tA := PointToCircuit(A)
+		var tUA [64]uints.U8
+		for i := 0; i < 32; i++ {
+			tUA[i] = uints.NewU8(bX[i])
+			tUA[i+32] = uints.NewU8(bY[i])
+		}
+		assert := test.NewAssert(t)
+		assert.NoError(test.IsSolved(&CircuitPointToBytes{}, &CircuitPointToBytes{
+			A:  tA,
+			UA: tUA,
 		}, ecc.BN254.ScalarField()))
 	}
 }

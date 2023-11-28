@@ -10,6 +10,7 @@ import (
 	//"github.com/consensys/gnark/std/algebra/fields_bls12377"
 
 	//"github.com/consensys/gnark-crypto/ecc/bls12-377/fptower"
+
 	"math/big"
 
 	"github.com/consensys/gnark/frontend"
@@ -159,18 +160,25 @@ func BitsElement(a Element, api frontend.API) []frontend.Variable {
 	return res
 }
 
-func ElementToUint8(a Element, api frontend.API, uapi *uints.BinaryField[uints.U64]) []uints.U8 {
-	res := make([]uints.U8, 32)
-	bits := BitsElement(a, api)
+func HintElementToUint8(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
+	x := big.NewInt(0).Add(big.NewInt(0).Mul(inputs[1], FieldBase), inputs[0])
+	//fmt.Println(FieldBase)
 	for i := 0; i < 32; i++ {
-		X := frontend.Variable(0)
-		base := frontend.Variable(1)
-		for j := i * 8; j < (i+1)*8; j++ {
-			X = api.Select(bits[j], api.Add(X, base), X)
-			base = api.Mul(base, frontend.Variable(2))
-		}
-		res[31-i] = uapi.ByteValueOf(X)
-		//res[i].Val = X
+		result[31-i].Mod(x, big.NewInt(256))
+		x.Div(x, big.NewInt(256))
 	}
+	return nil
+}
+
+func ElementToUint8(a Element, api frontend.API, uapi *uints.BinaryField[uints.U64]) []uints.U8 {
+	temp, _ := api.Compiler().NewHint(HintElementToUint8, 32, a.V[0], a.V[1])
+	var res []uints.U8 = make([]uints.U8, 32)
+	check := frontend.Variable(0)
+	//for i := 31; i >= 0; i-- {
+	for i := 0; i < 32; i++ {
+		res[i] = uapi.ByteValueOf(temp[i])
+		check = api.Add(api.Mul(check, frontend.Variable("256")), temp[i])
+	}
+	api.AssertIsEqual(check, api.Add(a.V[0], api.Mul(a.V[1], FieldBaseC)))
 	return res
 }

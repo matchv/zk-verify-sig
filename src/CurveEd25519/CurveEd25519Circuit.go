@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/consensys/gnark/frontend"
+	"github.com/consensys/gnark/std/math/uints"
 )
 
 const QC = "57896044618658097711785492504343953926634992332820282019728792003956564819949"
@@ -66,4 +67,18 @@ func OnCurveCircuit(p PointCircuit, api frontend.API) {
 	der = AddElement(der, BigIntToElement(big.NewInt(1)), api)
 
 	AssertEqualElement(izq, der, api)
+}
+
+func HashToValue(uapi *uints.BinaryField[uints.U64], api frontend.API, hash []uints.U8) Element {
+	res := StringToElement("0")
+	//	api.Println("RES 0 : ", res.V[0], " ", res.V[1])
+	for i := 0; i < len(hash); i++ {
+		res = ProdElement(res, StringToElement("256"), api)
+		res = AddElement(res, Element{[2]frontend.Variable{hash[i].Val, frontend.Variable(0)}}, api)
+		//	api.Println("RES ", res.V[0], " ", res.V[1])
+		//res = api.Mul(res, frontend.Variable(256))
+		//res = api.Add(res, hash[i].Val)
+	}
+
+	return res
 }

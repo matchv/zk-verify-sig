@@ -218,9 +218,10 @@ func TestToU8Element(t *testing.T) {
 		A0 := big.NewInt(0).Set(A)
 		var AU8 [32]uints.U8
 		for i := 0; i < 32; i++ {
-			AU8[i].Val = frontend.Variable(big.NewInt(0).Mod(A, big.NewInt(256)))
+			AU8[31-i].Val = frontend.Variable(big.NewInt(0).Mod(A, big.NewInt(256)))
 			A = big.NewInt(0).Div(A, big.NewInt(256))
 		}
+		fmt.Println(AU8)
 		//fmt.Println(A)
 		//fmt.Println(A0)
 		assert := test.NewAssert(t)

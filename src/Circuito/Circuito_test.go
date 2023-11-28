@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/consensys/gnark-crypto/ecc"
-	"github.com/consensys/gnark-crypto/ecc/bn254"
 
 	//"github.com/consensys/gnark/backend"
 	//"github.com/consensys/gnark/frontend"
@@ -35,15 +34,15 @@ import (
 func TestRandomAC(t *testing.T) {
 	for NT := 2; NT > 0; NT-- {
 		assert := test.NewAssert(t)
-		mod := bn254.ID.ScalarField()
+		//mod := bn254.ID.ScalarField()
 		var tR [NVAL]Curve.PointCircuit
 		var tS [NVAL]Curve.Element      //frontend.Variable
 		var tA [NVAL]Curve.PointCircuit //td.Point
 		var tMsg [NVAL]Curve.Element    // frontend.Variable
 
 		for nv := 0; nv < NVAL; nv++ {
-			sk, _ := crand.Int(crand.Reader, mod)
-			m, _ := crand.Int(crand.Reader, mod)
+			sk, _ := crand.Int(crand.Reader, Curve.Q)
+			m, _ := crand.Int(crand.Reader, Curve.Q)
 			tMsg[nv] = Curve.BigIntToElement(m)
 
 			sha512 := sha3.New512()
@@ -58,7 +57,7 @@ func TestRandomAC(t *testing.T) {
 			sha512.Write(prefix)
 			sha512.Write(m.FillBytes(make([]byte, 32)))
 			r := new(big.Int).SetBytes(sha512.Sum(nil))
-			r = r.Mod(r, Curve.Q)
+			//r = r.Mod(r, Curve.Q)
 
 			R := Curve.IntToPoint(r)
 			assert.Equal(Curve.OnCurve(R.X, R.Y), true, "R is not on curve")
@@ -74,7 +73,7 @@ func TestRandomAC(t *testing.T) {
 			fmt.Println(sha512.Sum(nil))
 			fmt.Println(k)
 			S := big.NewInt(0).Add(big.NewInt(0).Mul(k, s), r)
-			S.Mod(S, Curve.Q)
+			S.Mod(S, Curve.Ord)
 			tS[nv] = Curve.BigIntToElement(S)
 		}
 		assert.NoError(test.IsSolved(&Circuit{}, &Circuit{
