@@ -26,23 +26,29 @@ func init() {
 
 type Element struct {
 	V [2]frontend.Variable
+	M [2]frontend.Variable
 }
 
-func BigIntToElement(a *big.Int) Element {
-	return Element{[2]frontend.Variable{frontend.Variable(big.NewInt(0).Mod(a, FieldBase)), frontend.Variable(big.NewInt(0).Div(a, FieldBase))}}
+func BigIntToElement(a *big.Int, mod *big.Int) Element {
+	a = big.NewInt(0).Mod(a, mod)
+	return Element{[2]frontend.Variable{frontend.Variable(big.NewInt(0).Mod(a, FieldBase)), frontend.Variable(big.NewInt(0).Div(a, FieldBase))},
+		[2]frontend.Variable{frontend.Variable(big.NewInt(0).Mod(mod, FieldBase)), frontend.Variable(big.NewInt(0).Div(mod, FieldBase))},
+	}
 }
 
-func StringToElement(a string) Element {
+func StringToElement(a string, mod string) Element {
 	b, _ := big.NewInt(0).SetString(a, 10)
-	return BigIntToElement(b)
+	m, _ := big.NewInt(0).SetString(mod, 10)
+	return BigIntToElement(b, m)
 }
 
 func HintProduct(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
 	A := big.NewInt(0).Add(inputs[0], big.NewInt(0).Mul(inputs[1], FieldBase))
 	B := big.NewInt(0).Add(inputs[2], big.NewInt(0).Mul(inputs[3], FieldBase))
+	Mod := big.NewInt(0).Add(inputs[4], big.NewInt(0).Mul(inputs[5], FieldBase))
 	C := big.NewInt(0).Mul(A, B)
-	Co := big.NewInt(0).Div(C, Q)
-	R := big.NewInt(0).Mod(C, Q)
+	Co := big.NewInt(0).Div(C, Mod)
+	R := big.NewInt(0).Mod(C, Mod)
 	result[0] = big.NewInt(0).Mod(R, FieldBase)
 	result[1] = big.NewInt(0).Div(R, FieldBase)
 	result[2] = big.NewInt(0).Set(Co)
@@ -51,13 +57,17 @@ func HintProduct(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
 
 func ProdElement(a, b Element, api frontend.API) Element {
 	var res []frontend.Variable
-	res, _ = api.Compiler().NewHint(HintProduct, 3, a.V[0], a.V[1], b.V[0], b.V[1])
-	c := Element{[2]frontend.Variable{res[0], res[1]}}
+
+	api.AssertIsEqual(a.M[0], b.M[0])
+	api.AssertIsEqual(a.M[1], b.M[1])
+
+	res, _ = api.Compiler().NewHint(HintProduct, 3, a.V[0], a.V[1], b.V[0], b.V[1], a.M[0], a.M[1])
+	c := Element{[2]frontend.Variable{res[0], res[1]}, a.M}
 	izq := api.Add(
 		api.Mul(a.V[0], b.V[0]), api.Mul(a.V[1], b.V[0], FieldBaseC),
 		api.Mul(a.V[0], b.V[1], FieldBaseC), api.Mul(a.V[1], b.V[1], FieldBaseC, FieldBaseC))
 	der := api.Add(
-		c.V[0], api.Mul(c.V[1], FieldBaseC), api.Mul(res[2], QC))
+		c.V[0], api.Mul(c.V[1], FieldBaseC), api.Mul(res[2], api.Add(a.M[0], api.Mul(a.M[1], FieldBaseC))))
 	api.AssertIsEqual(izq, der)
 	return c
 }
@@ -73,9 +83,10 @@ func ProdElements(a []Element, api frontend.API) Element {
 
 func HintInverse(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
 	A := big.NewInt(0).Add(inputs[0], big.NewInt(0).Mul(inputs[1], FieldBase))
-	Res := big.NewInt(0).ModInverse(A, Q)
-	C := big.NewInt(0).Div(Res, Q)
-	R := big.NewInt(0).Mod(Res, Q)
+	Mod := big.NewInt(0).Add(inputs[2], big.NewInt(0).Mul(inputs[3], FieldBase))
+	Res := big.NewInt(0).ModInverse(A, Mod)
+	C := big.NewInt(0).Div(Res, Mod)
+	R := big.NewInt(0).Mod(Res, Mod)
 	result[0] = big.NewInt(0).Mod(R, FieldBase)
 	result[1] = big.NewInt(0).Div(R, FieldBase)
 	result[2] = big.NewInt(0).Set(C)
@@ -83,8 +94,8 @@ func HintInverse(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
 }
 
 func InverseElement(b Element, api frontend.API) Element {
-	res, _ := api.Compiler().NewHint(HintInverse, 3, b.V[0], b.V[1])
-	c := Element{[2]frontend.Variable{res[0], res[1]}}
+	res, _ := api.Compiler().NewHint(HintInverse, 3, b.V[0], b.V[1], b.M[0], b.M[1])
+	c := Element{[2]frontend.Variable{res[0], res[1]}, b.M}
 	bc := ProdElement(b, c, api)
 	api.AssertIsEqual(bc.V[0], frontend.Variable(1))
 	api.AssertIsEqual(bc.V[1], frontend.Variable(0))
@@ -94,9 +105,10 @@ func InverseElement(b Element, api frontend.API) Element {
 func HintAdd(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
 	A := big.NewInt(0).Add(inputs[0], big.NewInt(0).Mul(inputs[1], FieldBase))
 	B := big.NewInt(0).Add(inputs[2], big.NewInt(0).Mul(inputs[3], FieldBase))
+	Mod := big.NewInt(0).Add(inputs[4], big.NewInt(0).Mul(inputs[5], FieldBase))
 	C := big.NewInt(0).Add(A, B)
-	Co := big.NewInt(0).Div(C, Q)
-	R := big.NewInt(0).Mod(C, Q)
+	Co := big.NewInt(0).Div(C, Mod)
+	R := big.NewInt(0).Mod(C, Mod)
 	result[0] = big.NewInt(0).Mod(R, FieldBase)
 	result[1] = big.NewInt(0).Div(R, FieldBase)
 	result[2] = big.NewInt(0).Set(Co)
@@ -104,10 +116,12 @@ func HintAdd(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
 }
 
 func AddElement(a, b Element, api frontend.API) Element {
-	res, _ := api.Compiler().NewHint(HintAdd, 3, a.V[0], a.V[1], b.V[0], b.V[1])
-	c := Element{[2]frontend.Variable{res[0], res[1]}}
+	api.AssertIsEqual(a.M[0], b.M[0])
+	api.AssertIsEqual(a.M[1], b.M[1])
+	res, _ := api.Compiler().NewHint(HintAdd, 3, a.V[0], a.V[1], b.V[0], b.V[1], a.M[0], a.M[1])
+	c := Element{[2]frontend.Variable{res[0], res[1]}, a.M}
 	izq := api.Add(api.Add(a.V[0], b.V[0]), api.Mul(FieldBaseC, api.Add(a.V[1], b.V[1])))
-	der := api.Add(c.V[0], api.Mul(FieldBaseC, c.V[1]), api.Mul(res[2], QC))
+	der := api.Add(c.V[0], api.Mul(FieldBaseC, c.V[1]), api.Mul(res[2], api.Add(a.M[0], api.Mul(a.M[1], FieldBaseC))))
 	api.AssertIsEqual(izq, der)
 	return c
 }
@@ -124,6 +138,8 @@ func AddElements(a []Element, api frontend.API) Element {
 func AssertEqualElement(a, b Element, api frontend.API) {
 	api.AssertIsEqual(a.V[0], b.V[0])
 	api.AssertIsEqual(a.V[1], b.V[1])
+	api.AssertIsEqual(a.M[0], b.M[0])
+	api.AssertIsEqual(a.M[1], b.M[1])
 }
 
 func HintBitsElement(_ *big.Int, inputs []*big.Int, result []*big.Int) error {

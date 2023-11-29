@@ -78,9 +78,8 @@ func Add(PA Point, PB Point) Point {
 }
 
 func MulByScalar(P Point, SO *big.Int) Point {
-	S := big.NewInt(0).Add(SO, big.NewInt(0))
-	S.Sub(S, big.NewInt(1))
-	res := P
+	S := big.NewInt(0).Set(SO)
+	res := Point{big.NewInt(0), big.NewInt(1)}
 	for ; S.Cmp(big.NewInt(0)) > 0; S.Div(S, big.NewInt(2)) {
 		if big.NewInt(0).Mod(S, big.NewInt(2)).Cmp(big.NewInt(0)) == 1 {
 			res = Add(res, P)
@@ -94,10 +93,13 @@ func OnCurve(X *big.Int, Y *big.Int) bool {
 	//fmt.Println("On Curve")
 	X2 := big.NewInt(0).Exp(X, big.NewInt(2), nil)
 	Y2 := big.NewInt(0).Exp(Y, big.NewInt(2), nil)
-	ladoIzq := big.NewInt(0).Add(big.NewInt(0).Mul(X2, A), Y2)
+	ladoIzq := big.NewInt(0).Add(big.NewInt(0).Mul(X2, big.NewInt(-1)), Y2)
 	ladoDer := big.NewInt(0).Add(big.NewInt(1), big.NewInt(0).Mul(
 		big.NewInt(0).Mul(D, X2), Y2))
 	ladoIzq.Mod(ladoIzq, Q)
 	ladoDer.Mod(ladoDer, Q)
+	//fmt.Println(ladoIzq)
+	//fmt.Println(ladoDer)
+
 	return ladoIzq.Cmp(ladoDer) == 0
 }

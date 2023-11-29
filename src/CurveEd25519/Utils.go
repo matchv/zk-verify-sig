@@ -9,8 +9,6 @@ import (
 
 	//"github.com/consensys/gnark/std/algebra/fields_bls12377"
 
-	"fmt"
-
 	fr "github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	td "github.com/consensys/gnark/std/algebra/native/twistededwards"
 
@@ -21,22 +19,23 @@ import (
 )
 
 func init() {
-	fmt.Println("Iniciando...")
+	//fmt.Println("Iniciando...")
 	var temp *big.Int = new(big.Int)
 	Q.Exp(big.NewInt(2), big.NewInt(255), nil)
 	Q.Sub(Q, big.NewInt(19))
 
-	A.SetUint64(486664)
-	D.SetUint64(486660)
+	A.Sub(Q, big.NewInt(1))
+	D.SetString("37095705934669439343138083508754565189542113879843219016388785533085940283555", 10)
 	temp.SetString("27742317777372353535851937790883648493", 10)
 	Ord.Exp(big.NewInt(2), big.NewInt(252), nil)
 	Ord.Add(Ord, temp)
 	Cofactor.SetInt64(8)
 
 	BU.Set(big.NewInt(9))
-	BV.SetString("5f51e65e475f794b1fe122d388b72eb36dc2b28192839e4dd6163a5d81312c14", 16)
+	BV.SetString("20ae19a1b8a086b4e01edd2c7748d14c923d4d7e6d7c61b229e9c5a27eced3d9", 16)
 
-	BX.Mul(BU, big.NewInt(0).ModInverse(BV, Q))
+	BX.SetString("15112221349535400772501151409588531511454012693041857206046113283949847762202", 10)
+	//BX.Mul(BU, big.NewInt(0).ModInverse(BV, Q))
 	BY.Mul(big.NewInt(1).Add(big.NewInt(-1), BU),
 		big.NewInt(0).ModInverse(big.NewInt(0).Add(big.NewInt(1), BU), Q))
 
@@ -64,7 +63,7 @@ func init() {
 	BUC = frontend.Variable(BU)
 	BVC = frontend.Variable(BV)
 	BASEC = PointCircuit{BXC, BYC}*/
-	fmt.Println(QC)
+	//fmt.Println(QC)
 }
 func IntToPoint(x *big.Int) Point {
 	return MulByScalar(BASE, x)

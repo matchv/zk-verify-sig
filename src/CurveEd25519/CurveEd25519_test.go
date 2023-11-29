@@ -17,7 +17,7 @@ import (
 )
 
 func TestDouble(t *testing.T) {
-	fmt.Println(Q)
+	//fmt.Println(Q)
 	Op1 := Add(BASE, BASE)
 	Op2 := MulByScalar(BASE, big.NewInt(2))
 	if Op1.X.Cmp(Op2.X) != 0 || Op1.Y.Cmp(Op2.Y) != 0 {
@@ -147,9 +147,9 @@ func TestGenOnCurve(t *testing.T) {
 		big.NewInt(0).Mul(D, X2), Y2))
 	ladoIzq.Mod(ladoIzq, Q)
 	ladoDer.Mod(ladoDer, Q)
-	fmt.Println(ladoIzq)
+	/*fmt.Println(ladoIzq)
 	fmt.Println(ladoDer)
-	fmt.Println(Q)
+	fmt.Println(Q)*/
 	if ladoIzq.Cmp(ladoDer) != 0 {
 		t.Errorf("El punto base no está en la curva.")
 	}
@@ -169,9 +169,9 @@ func TestGenOnCurveAlt(t *testing.T) {
 
 	ladoIzq.Mod(ladoIzq, Q)
 	ladoDer.Mod(ladoDer, Q)
-	fmt.Println(ladoIzq)
+	/*fmt.Println(ladoIzq)
 	fmt.Println(ladoDer)
-	fmt.Println(Q)
+	fmt.Println(Q)*/
 	if ladoIzq.Cmp(ladoDer) != 0 {
 		t.Errorf("El punto base no está en la curva.")
 	}

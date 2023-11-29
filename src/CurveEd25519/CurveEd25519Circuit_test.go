@@ -7,6 +7,8 @@ import (
 
 	//"github.com/rs/zerolog"
 
+	"math/big"
+
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
@@ -80,7 +82,7 @@ func (circuit *CircuitEqualProd) Define(api frontend.API) error {
 func TestEqualProd(t *testing.T) {
 	for nt := 0; nt < 10; nt++ {
 		A := BASE
-		s, _ := crand.Int(crand.Reader, Q)
+		s, _ := crand.Int(crand.Reader, Ord)
 		Prod := MulByScalar(A, s)
 		if OnCurve(Prod.X, Prod.Y) == false {
 			t.Errorf("Error in Prod in Curve")
@@ -88,7 +90,7 @@ func TestEqualProd(t *testing.T) {
 		assert := test.NewAssert(t)
 		assert.NoError(test.IsSolved(&CircuitEqualProd{}, &CircuitEqualProd{
 			A:    PointToCircuit(A),
-			S:    BigIntToElement(s),
+			S:    BigIntToElement(s, Ord),
 			Prod: PointToCircuit(Prod),
 		}, ecc.BN254.ScalarField()))
 	}
@@ -101,8 +103,8 @@ type CircuitPointToBytes struct { // Test PointToBytes
 
 func (circuit *CircuitPointToBytes) Define(api frontend.API) error {
 	uapi, _ := uints.New[uints.U64](api)
-	X := HashToValue(uapi, api, circuit.UA[0:32])
-	Y := HashToValue(uapi, api, circuit.UA[32:64])
+	X := HashToValue(uapi, api, circuit.UA[0:32], QC)
+	Y := HashToValue(uapi, api, circuit.UA[32:64], QC)
 	AssertEqualElement(X, circuit.A.X, api)
 	AssertEqualElement(Y, circuit.A.Y, api)
 
@@ -118,7 +120,7 @@ func (circuit *CircuitPointToBytes) Define(api frontend.API) error {
 
 func TestPointToBytes(t *testing.T) {
 	for nt := 0; nt < 10; nt++ {
-		s, _ := crand.Int(crand.Reader, Q)
+		s, _ := crand.Int(crand.Reader, Ord)
 		A := IntToPoint(s)
 		bX := A.X.FillBytes(make([]byte, 32))
 		bY := A.Y.FillBytes(make([]byte, 32))
@@ -133,6 +135,58 @@ func TestPointToBytes(t *testing.T) {
 		assert.NoError(test.IsSolved(&CircuitPointToBytes{}, &CircuitPointToBytes{
 			A:  tA,
 			UA: tUA,
+		}, ecc.BN254.ScalarField()))
+	}
+}
+
+type CircuitCriticProduct struct {
+	A   PointCircuit `gnark:",public"`
+	R   PointCircuit `gnark:",public"`
+	K   Element      `gnark:",public"`
+	S   Element      `gnark:",public"`
+	RES PointCircuit `gnark:",public"`
+}
+
+func (circuit *CircuitCriticProduct) Define(api frontend.API) error {
+	A := MulByScalarCircuit(circuit.A, circuit.K, api)
+	A = MulByScalarCircuit(A, StringToElement("8", OrdC), api)
+	R := MulByScalarCircuit(circuit.R, StringToElement("8", OrdC), api)
+	MyRes := AddCircuit(A, R, api)
+	AssertEqualElement(MyRes.X, circuit.RES.X, api)
+
+	B := GetBaseCircuit()
+	B = MulByScalarCircuit(B, circuit.S, api)
+	B = MulByScalarCircuit(B, StringToElement("8", OrdC), api)
+
+	AssertEqualElement(MyRes.X, B.X, api)
+	AssertEqualElement(MyRes.Y, B.Y, api)
+
+	return nil
+}
+
+func TestCriticProduct(t *testing.T) {
+	for nt := 0; nt < 10; nt++ {
+		s1, _ := crand.Int(crand.Reader, Q)
+		s2, _ := crand.Int(crand.Reader, Q)
+		A := MulByScalar(BASE, s1)
+		R := MulByScalar(BASE, s2)
+		k, _ := crand.Int(crand.Reader, Q)
+		A2 := MulByScalar(A, k)
+		A2 = MulByScalar(A2, big.NewInt(8))
+		R2 := MulByScalar(R, big.NewInt(8))
+		MyRes := Add(A2, R2)
+		if OnCurve(MyRes.X, MyRes.Y) == false {
+			t.Errorf("Error in Critic Product in Curve")
+		}
+		S := big.NewInt(0).Add(big.NewInt(0).Mul(k, s1), s2)
+		S.Mod(S, Ord)
+		assert := test.NewAssert(t)
+		assert.NoError(test.IsSolved(&CircuitCriticProduct{}, &CircuitCriticProduct{
+			A:   PointToCircuit(A),
+			R:   PointToCircuit(R),
+			K:   BigIntToElement(k, Ord),
+			S:   BigIntToElement(S, Ord),
+			RES: PointToCircuit(MyRes),
 		}, ecc.BN254.ScalarField()))
 	}
 }
