@@ -7,7 +7,10 @@ import (
 
 	//"github.com/consensys/gnark/backend"
 	//"github.com/consensys/gnark/frontend"
+
+	"github.com/consensys/gnark/std/math/uints"
 	"github.com/consensys/gnark/test"
+
 	//"github.com/rs/zerolog"
 
 	//"github.com/consensys/gnark/std/algebra/fields_bls12377"
@@ -18,6 +21,7 @@ import (
 	sha3 "golang.org/x/crypto/sha3"
 
 	//"github.com/consensys/gnark-crypto/ecc/bls12-377/fptower"
+
 	"math/big"
 )
 
@@ -31,20 +35,22 @@ import (
 }*/
 
 func TestRandomAC(t *testing.T) {
-	maximo := big.NewInt(0).Exp(big.NewInt(2), big.NewInt(256), nil)
 	for NT := 2; NT > 0; NT-- {
 		assert := test.NewAssert(t)
 		//mod := bn254.ID.ScalarField()
 		var tR [NVAL]Curve.PointCircuit
-		var tS [NVAL]Curve.Element      //frontend.Variable
+		var tS [NVAL]Curve.ElementO     //frontend.Variable
 		var tA [NVAL]Curve.PointCircuit //td.Point
-		var tMsg [NVAL]Curve.Element    // frontend.Variable
+		//var tMsg [NVAL]Curve.ElementF   // frontend.Variable
+		var tMsg [NVAL][MLAR]uints.U8
 
 		for nv := 0; nv < NVAL; nv++ {
 			sk, _ := crand.Int(crand.Reader, Curve.Q)
-			m, _ := crand.Int(crand.Reader, maximo)
-			tMsg[nv] = Curve.BigIntToElement(m, maximo)
-
+			var m [MLAR]byte
+			crand.Read(m[:])
+			for i := 0; i < MLAR; i++ {
+				tMsg[nv][i] = uints.NewU8(m[i])
+			}
 			sha512 := sha3.New512()
 			sha512.Write(sk.Bytes())
 			H := sha512.Sum(nil)
@@ -56,8 +62,10 @@ func TestRandomAC(t *testing.T) {
 			prefix := H[32:64]
 			sha512.Reset()
 			sha512.Write(prefix)
-			sha512.Write(m.FillBytes(make([]byte, 32)))
+			sha512.Write(m[:])
+			//sha512.Write(m.FillBytes(make([]byte, 32)))
 			r := new(big.Int).SetBytes(sha512.Sum(nil))
+			r = r.Mul(r, big.NewInt(8))
 			r = r.Mod(r, Curve.Ord)
 
 			R := Curve.IntToPoint(r)
@@ -68,7 +76,7 @@ func TestRandomAC(t *testing.T) {
 			sha512.Reset()
 			sha512.Write(R.Bytes())
 			sha512.Write(A.Bytes())
-			sha512.Write(m.FillBytes(make([]byte, 32)))
+			sha512.Write(m[:])
 			k := new(big.Int).SetBytes(sha512.Sum(nil))
 			k = k.Mod(k, Curve.Ord)
 			//fmt.Println(sha512.Sum(nil))
@@ -76,7 +84,7 @@ func TestRandomAC(t *testing.T) {
 
 			S := big.NewInt(0).Add(big.NewInt(0).Mul(k, s), r)
 			S.Mod(S, Curve.Ord)
-			tS[nv] = Curve.BigIntToElement(S, Curve.Ord)
+			tS[nv] = Curve.BigIntToElementO(S)
 
 			/*fmt.Println("Out Circuit ")
 			fmt.Println("A: ", A.X, " ", A.Y)

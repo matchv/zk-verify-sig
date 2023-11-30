@@ -6,7 +6,7 @@ import (
 	//"github.com/consensys/gnark/frontend"
 
 	//"github.com/rs/zerolog"
-
+	"fmt"
 	"math/big"
 
 	"github.com/consensys/gnark-crypto/ecc"
@@ -302,4 +302,12 @@ func TestSHA512Element(t *testing.T) {
 			}, ecc.BN254.ScalarField()))
 		}
 	}
+}
+
+func TestBigIntModNeg(t *testing.T) {
+	a := big.NewInt(0).Mod(big.NewInt(-1), Q)
+	b := big.NewInt(0).Div(big.NewInt(-1), Q)
+	fmt.Println(a)
+	fmt.Println(b)
+	t.Errorf("Error in Big Int Mod Neg")
 }

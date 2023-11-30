@@ -29,8 +29,8 @@ type CircuitEqualSum struct { // Test A + B = Sum
 
 func (circuit *CircuitEqualSum) Define(api frontend.API) error {
 	AB := AddCircuit(circuit.A, circuit.B, api)
-	AssertEqualElement(AB.X, circuit.Sum.X, api)
-	AssertEqualElement(AB.Y, circuit.Sum.Y, api)
+	AssertEqualElementQ(AB.X, circuit.Sum.X, api)
+	AssertEqualElementQ(AB.Y, circuit.Sum.Y, api)
 	return nil
 }
 
@@ -68,14 +68,14 @@ func TestEqualSum(t *testing.T) {
 
 type CircuitEqualProd struct { // Test A * B = Prod
 	A    PointCircuit `gnark:",public"`
-	S    Element      `gnark:",public"`
+	S    ElementO     `gnark:",public"`
 	Prod PointCircuit `gnark:",public"`
 }
 
 func (circuit *CircuitEqualProd) Define(api frontend.API) error {
 	AB := MulByScalarCircuit(circuit.A, circuit.S, api)
-	AssertEqualElement(AB.X, circuit.Prod.X, api)
-	AssertEqualElement(AB.Y, circuit.Prod.Y, api)
+	AssertEqualElementQ(AB.X, circuit.Prod.X, api)
+	AssertEqualElementQ(AB.Y, circuit.Prod.Y, api)
 	return nil
 }
 
@@ -90,7 +90,7 @@ func TestEqualProd(t *testing.T) {
 		assert := test.NewAssert(t)
 		assert.NoError(test.IsSolved(&CircuitEqualProd{}, &CircuitEqualProd{
 			A:    PointToCircuit(A),
-			S:    BigIntToElement(s, Ord),
+			S:    BigIntToElementO(s),
 			Prod: PointToCircuit(Prod),
 		}, ecc.BN254.ScalarField()))
 	}
@@ -103,13 +103,13 @@ type CircuitPointToBytes struct { // Test PointToBytes
 
 func (circuit *CircuitPointToBytes) Define(api frontend.API) error {
 	uapi, _ := uints.New[uints.U64](api)
-	X := HashToValue(uapi, api, circuit.UA[0:32], QC)
-	Y := HashToValue(uapi, api, circuit.UA[32:64], QC)
-	AssertEqualElement(X, circuit.A.X, api)
-	AssertEqualElement(Y, circuit.A.Y, api)
+	X := HashToValueQ(uapi, api, circuit.UA[0:32])
+	Y := HashToValueQ(uapi, api, circuit.UA[32:64])
+	AssertEqualElementQ(X, circuit.A.X, api)
+	AssertEqualElementQ(Y, circuit.A.Y, api)
 
-	UX := ElementToUint8(circuit.A.X, api, uapi)
-	UY := ElementToUint8(circuit.A.Y, api, uapi)
+	UX := ElementToUint8Q(circuit.A.X, api, uapi)
+	UY := ElementToUint8Q(circuit.A.Y, api, uapi)
 	for i := 0; i < 32; i++ {
 		uapi.ByteAssertEq(UX[i], circuit.UA[i])
 		uapi.ByteAssertEq(UY[i], circuit.UA[i+32])
@@ -142,24 +142,24 @@ func TestPointToBytes(t *testing.T) {
 type CircuitCriticProduct struct {
 	A   PointCircuit `gnark:",public"`
 	R   PointCircuit `gnark:",public"`
-	K   Element      `gnark:",public"`
-	S   Element      `gnark:",public"`
+	K   ElementO     `gnark:",public"`
+	S   ElementO     `gnark:",public"`
 	RES PointCircuit `gnark:",public"`
 }
 
 func (circuit *CircuitCriticProduct) Define(api frontend.API) error {
 	A := MulByScalarCircuit(circuit.A, circuit.K, api)
-	A = MulByScalarCircuit(A, StringToElement("8", OrdC), api)
-	R := MulByScalarCircuit(circuit.R, StringToElement("8", OrdC), api)
+	A = MulByScalarCircuit(A, StringToElementO("8"), api)
+	R := MulByScalarCircuit(circuit.R, StringToElementO("8"), api)
 	MyRes := AddCircuit(A, R, api)
-	AssertEqualElement(MyRes.X, circuit.RES.X, api)
+	AssertEqualElementQ(MyRes.X, circuit.RES.X, api)
 
 	B := GetBaseCircuit()
 	B = MulByScalarCircuit(B, circuit.S, api)
-	B = MulByScalarCircuit(B, StringToElement("8", OrdC), api)
+	B = MulByScalarCircuit(B, StringToElementO("8"), api)
 
-	AssertEqualElement(MyRes.X, B.X, api)
-	AssertEqualElement(MyRes.Y, B.Y, api)
+	AssertEqualElementQ(MyRes.X, B.X, api)
+	AssertEqualElementQ(MyRes.Y, B.Y, api)
 
 	return nil
 }
@@ -184,8 +184,8 @@ func TestCriticProduct(t *testing.T) {
 		assert.NoError(test.IsSolved(&CircuitCriticProduct{}, &CircuitCriticProduct{
 			A:   PointToCircuit(A),
 			R:   PointToCircuit(R),
-			K:   BigIntToElement(k, Ord),
-			S:   BigIntToElement(S, Ord),
+			K:   BigIntToElementO(k),
+			S:   BigIntToElementO(S),
 			RES: PointToCircuit(MyRes),
 		}, ecc.BN254.ScalarField()))
 	}
