@@ -88,9 +88,9 @@ func TestTime(t *testing.T) {
 	out := ""
 	out = out + Timer[*Circuit](t, "NVAL = 1", Random)
 	out = out + Timer[*Circuit16](t, "NVAL = 16", Random16)
-	out = out + Timer[*Circuit32](t, "NVAL = 16", Random32)
-	out = out + Timer[*Circuit48](t, "NVAL = 16", Random48)
-	out = out + Timer[*Circuit64](t, "NVAL = 16", Random64)
+	out = out + Timer[*Circuit32](t, "NVAL = 32", Random32)
+	out = out + Timer[*Circuit48](t, "NVAL = 48", Random48)
+	out = out + Timer[*Circuit64](t, "NVAL = 64", Random64)
 
 	fmt.Println(out)
 }
