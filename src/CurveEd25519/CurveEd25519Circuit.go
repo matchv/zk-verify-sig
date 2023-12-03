@@ -45,8 +45,8 @@ func AddCircuit(p1, p2 PointCircuit, api frontend.API) PointCircuit {
 	Z := ProdElementQ(XX, YY, api)
 	ZD := ProdElementQ(Z, StringToElementQ(DC), api)
 	X := DivElementQ(
-		SubElementQ(ProdElementQ(AddElementQ(p1.X, p1.Y, api), AddElementQ(p2.X, p2.Y, api), api), AddElementQ(XX, YY, api), api),
-		//AddElementQ(ProdElementQ(p1.X, p2.Y, api), ProdElementQ(p1.Y, p2.X, api), api),
+		//SubElementQ(ProdElementQ(AddElementQ(p1.X, p1.Y, api), AddElementQ(p2.X, p2.Y, api), api), AddElementQ(XX, YY, api), api),
+		AddElementQ(ProdElementQ(p1.X, p2.Y, api), ProdElementQ(p1.Y, p2.X, api), api),
 		AddElementQ(BigIntToElementQ(big.NewInt(1)), ZD, api), api)
 
 	Y := DivElementQ(AddElementQ(YY, XX, api), SubElementQ(BigIntToElementQ(big.NewInt(1)), ZD, api), api)

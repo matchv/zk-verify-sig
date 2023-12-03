@@ -12,7 +12,7 @@ import (
 	//"github.com/consensys/gnark-crypto/ecc/bls12-377/fptower"
 
 	"math/big"
-
+	"github.com/consensys/gnark/constraint/solver"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/math/uints"
 )
@@ -23,6 +23,7 @@ var FieldModulusC = "11579208923731619542357098500868790785326998466564056403945
 func init() {
 	FieldBase, _ = big.NewInt(0).SetString("340282366920938463463374607431768211456", 10)
 	FieldModulus, _ = big.NewInt(0).SetString(FieldModulusC, 10)
+	solver.RegisterHint(HintProductF, HintInverseF, HintAddF, HintBitsElementF, HintElementToUint8F)
 }
 
 type ElementF struct {

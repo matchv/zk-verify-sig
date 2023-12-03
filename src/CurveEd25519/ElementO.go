@@ -13,12 +13,14 @@ import (
 
 	"math/big"
 
+	"github.com/consensys/gnark/constraint/solver"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/math/uints"
 )
 
 func init() {
 	FieldBase, _ = big.NewInt(0).SetString("340282366920938463463374607431768211456", 10)
+	solver.RegisterHint(HintProductO, HintInverseO, HintAddO, HintBitsElementO, HintElementToUint8O)
 }
 
 type ElementO struct {
