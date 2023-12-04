@@ -2,6 +2,7 @@ package Circuito
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/frontend"
@@ -43,7 +44,7 @@ func Measures(v []time.Duration) (float64, float64) {
 		sigma += (v[i].Seconds() - avg) * (v[i].Seconds() - avg)
 	}
 	sigma = sigma / float64(len(v)-1)
-	return avg, sigma
+	return avg, math.Sqrt(sigma)
 }
 
 func Timer[C Circuito](t *testing.T, name string, New func() C) string {
