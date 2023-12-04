@@ -3,13 +3,9 @@ package Circuito
 import (
 	Curve "ed25519/src/CurveEd25519"
 
-	crand "crypto/rand"
-	"math/big"
-
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/hash/sha3"
 	"github.com/consensys/gnark/std/math/uints"
-	csha3 "golang.org/x/crypto/sha3"
 )
 
 type Circuit64 struct {
@@ -53,42 +49,37 @@ func (circuit *Circuit64) Define(api frontend.API) error {
 	return nil
 }
 
-func Random64() *Circuit64 {
-	circuit := new(Circuit64)
-	for nv := 0; nv < 64; nv++ {
-		sk, _ := crand.Int(crand.Reader, Curve.Q)
-		var m [MLAR]byte
-		crand.Read(m[:])
-		for i := 0; i < MLAR; i++ {
-			circuit.Msg[nv][i] = uints.NewU8(m[i])
-		}
-		sha512 := csha3.New512()
-		sha512.Write(sk.Bytes())
-		H := sha512.Sum(nil)
-		s := new(big.Int).SetBytes(H[0:32])
-		A := Curve.IntToPoint(s)
-		circuit.A[nv] = Curve.PointToCircuit(A)
+func (circuit *Circuit64) GetR() []Curve.PointCircuit {
+	return circuit.R[:]
+}
 
-		prefix := H[32:64]
-		sha512.Reset()
-		sha512.Write(prefix)
-		sha512.Write(m[:])
-		r := new(big.Int).SetBytes(sha512.Sum(nil))
-		r = r.Mul(r, big.NewInt(8))
-		r = r.Mod(r, Curve.Ord)
+func (circuit *Circuit64) SetR(values []Curve.PointCircuit) {
+	copy(circuit.R[:], values)
+}
+func (circuit *Circuit64) GetS() []Curve.ElementO {
+	return circuit.S[:]
+}
 
-		R := Curve.IntToPoint(r)
-		circuit.R[nv] = Curve.PointToCircuit(R)
-		sha512.Reset()
-		sha512.Write(R.Bytes())
-		sha512.Write(A.Bytes())
-		sha512.Write(m[:])
-		k := new(big.Int).SetBytes(sha512.Sum(nil))
-		k = k.Mod(k, Curve.Ord)
+func (circuit *Circuit64) SetS(values []Curve.ElementO) {
+	copy(circuit.S[:], values)
+}
 
-		S := big.NewInt(0).Add(big.NewInt(0).Mul(k, s), r)
-		S.Mod(S, Curve.Ord)
-		circuit.S[nv] = Curve.BigIntToElementO(S)
-	}
-	return circuit
+func (circuit *Circuit64) GetA() []Curve.PointCircuit {
+	return circuit.A[:]
+}
+
+func (circuit *Circuit64) SetA(values []Curve.PointCircuit) {
+	copy(circuit.A[:], values)
+}
+
+func (circuit *Circuit64) GetMsg() [][MLAR]uints.U8 {
+	return circuit.Msg[:]
+}
+
+func (circuit *Circuit64) SetMsg(values [][MLAR]uints.U8) {
+	copy(circuit.Msg[:], values)
+}
+
+func NewCircuit64() *Circuit64 {
+	return new(Circuit64)
 }

@@ -32,7 +32,7 @@ func Profiler1() {
 	var tS [1]Curve.ElementO     //frontend.Variable
 	var tA [1]Curve.PointCircuit //td.Point
 	//var tMsg [NVAL]Curve.ElementF   // frontend.Variable
-	var tMsg [1][32]uints.U8
+	var tMsg [1][Circuito.MLAR]uints.U8
 
 	for nv := 0; nv < 1; nv++ {
 		sk, _ := crand.Int(crand.Reader, Curve.Q)
@@ -111,13 +111,13 @@ func Profiler16() {
 	var tS [16]Curve.ElementO     //frontend.Variable
 	var tA [16]Curve.PointCircuit //td.Point
 	//var tMsg [NVAL]Curve.ElementF   // frontend.Variable
-	var tMsg [16][32]uints.U8
+	var tMsg [16][Circuito.MLAR]uints.U8
 
 	for nv := 0; nv < 16; nv++ {
 		sk, _ := crand.Int(crand.Reader, Curve.Q)
-		var m [32]byte
+		var m [Circuito.MLAR]byte
 		crand.Read(m[:])
-		for i := 0; i < 32; i++ {
+		for i := 0; i < Circuito.MLAR; i++ {
 			tMsg[nv][i] = uints.NewU8(m[i])
 		}
 		sha512 := sha3.New512()

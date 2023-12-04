@@ -2,20 +2,16 @@ package Circuito
 
 import (
 	Curve "ed25519/src/CurveEd25519"
-	"math/big"
-
-	crand "crypto/rand"
-
-	csha3 "golang.org/x/crypto/sha3"
 
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/hash/sha3"
 	"github.com/consensys/gnark/std/math/uints"
 )
 
-const NVAL = 1
+const NVAL = 3
 const MLAR = 115 /// d(nbConstrains)/d(MLAR) aprox 5.000
 
+// / Signature : R.X, R.Y, S
 type Circuit struct {
 	R   [NVAL]Curve.PointCircuit `gnark:",public"`
 	S   [NVAL]Curve.ElementO     `gnark:",public"`
@@ -101,46 +97,43 @@ func (circuit *Circuit) Define(api frontend.API) error {
 }
 
 func NewCircuit() *Circuit {
-	circuit := new(Circuit)
-	return circuit
+	return new(Circuit)
 }
 
-func Random() *Circuit {
-	circuit := new(Circuit)
-	for nv := 0; nv < NVAL; nv++ {
-		sk, _ := crand.Int(crand.Reader, Curve.Q)
-		var m [MLAR]byte
-		crand.Read(m[:])
-		for i := 0; i < MLAR; i++ {
-			circuit.Msg[nv][i] = uints.NewU8(m[i])
-		}
-		sha512 := csha3.New512()
-		sha512.Write(sk.Bytes())
-		H := sha512.Sum(nil)
-		s := new(big.Int).SetBytes(H[0:32])
-		A := Curve.IntToPoint(s)
-		circuit.A[nv] = Curve.PointToCircuit(A)
+func (circuit *Circuit) GetR() []Curve.PointCircuit {
+	return circuit.R[:]
+}
 
-		prefix := H[32:64]
-		sha512.Reset()
-		sha512.Write(prefix)
-		sha512.Write(m[:])
-		r := new(big.Int).SetBytes(sha512.Sum(nil))
-		r = r.Mul(r, big.NewInt(8))
-		r = r.Mod(r, Curve.Ord)
+func (circuit *Circuit) SetR(value []Curve.PointCircuit) {
+	copy(circuit.R[:], value)
+}
 
-		R := Curve.IntToPoint(r)
-		circuit.R[nv] = Curve.PointToCircuit(R)
-		sha512.Reset()
-		sha512.Write(R.Bytes())
-		sha512.Write(A.Bytes())
-		sha512.Write(m[:])
-		k := new(big.Int).SetBytes(sha512.Sum(nil))
-		k = k.Mod(k, Curve.Ord)
+func (circuit *Circuit) GetS() []Curve.ElementO {
+	return circuit.S[:]
+}
 
-		S := big.NewInt(0).Add(big.NewInt(0).Mul(k, s), r)
-		S.Mod(S, Curve.Ord)
-		circuit.S[nv] = Curve.BigIntToElementO(S)
+func (circuit *Circuit) SetS(value []Curve.ElementO) {
+	copy(circuit.S[:], value)
+}
+
+func (circuit *Circuit) GetA() []Curve.PointCircuit {
+	return circuit.A[:]
+}
+
+func (circuit *Circuit) SetA(value []Curve.PointCircuit) {
+	copy(circuit.A[:], value)
+}
+
+func (circuit *Circuit) GetMsg() [][MLAR]uints.U8 {
+	msg := make([][MLAR]uints.U8, NVAL)
+	for i := 0; i < NVAL; i++ {
+		msg[i] = circuit.Msg[i]
 	}
-	return circuit
+	return msg
+}
+
+func (circuit *Circuit) SetMsg(value [][MLAR]uints.U8) {
+	for i := 0; i < NVAL; i++ {
+		copy(circuit.Msg[i][:], value[i][:])
+	}
 }

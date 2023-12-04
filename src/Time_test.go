@@ -1,6 +1,7 @@
 package Circuito
 
 import (
+	"ed25519/src/Circuito"
 	"fmt"
 	"math"
 
@@ -29,10 +30,6 @@ import (
 
 const NTests = 25
 
-type Circuito interface {
-	Define(api frontend.API) error
-}
-
 func Measures(v []time.Duration) (float64, float64) {
 	var avg float64 = 0.0
 	var sigma float64 = 0.0
@@ -47,7 +44,7 @@ func Measures(v []time.Duration) (float64, float64) {
 	return avg, math.Sqrt(sigma)
 }
 
-func Timer[C Circuito](t *testing.T, name string, New func() C) string {
+func Timer[C Circuito.Interface](t *testing.T, name string, New func() C) string {
 	assert := test.NewAssert(t)
 	p := profile.Start()
 	startCompilation := time.Now()
@@ -87,11 +84,11 @@ func Timer[C Circuito](t *testing.T, name string, New func() C) string {
 
 func TestTime(t *testing.T) {
 	out := ""
-	out = out + Timer[*Circuit](t, "NVAL = 1", Random)
-	out = out + Timer[*Circuit16](t, "NVAL = 16", Random16)
-	out = out + Timer[*Circuit32](t, "NVAL = 32", Random32)
-	out = out + Timer[*Circuit48](t, "NVAL = 48", Random48)
-	out = out + Timer[*Circuit64](t, "NVAL = 64", Random64)
+	out = out + Timer[*Circuito.Circuit](t, "NVAL = 1", Circuito.BuildRandom[*Circuito.Circuit](Circuito.NewCircuit))
+	out = out + Timer[*Circuito.Circuit16](t, "NVAL = 16", Circuito.BuildRandom[*Circuito.Circuit16](Circuito.NewCircuit16))
+	out = out + Timer[*Circuito.Circuit32](t, "NVAL = 32", Circuito.BuildRandom[*Circuito.Circuit32](Circuito.NewCircuit32))
+	out = out + Timer[*Circuito.Circuit48](t, "NVAL = 48", Circuito.BuildRandom[*Circuito.Circuit48](Circuito.NewCircuit48))
+	out = out + Timer[*Circuito.Circuit64](t, "NVAL = 64", Circuito.BuildRandom[*Circuito.Circuit64](Circuito.NewCircuit64))
 
 	fmt.Println(out)
 }

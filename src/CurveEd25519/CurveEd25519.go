@@ -42,6 +42,10 @@ func (p *Point) Bytes() []byte {
 	return append(p.X.FillBytes(make([]byte, 32)), p.Y.FillBytes(make([]byte, 32))...)
 }
 
+func BytesToPoint(b []byte) Point {
+	return Point{new(big.Int).SetBytes(b[:32]), new(big.Int).SetBytes(b[32:])}
+}
+
 var BASE Point
 
 func BigMul(bs ...*big.Int) *big.Int {
