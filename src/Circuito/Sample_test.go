@@ -1,8 +1,6 @@
 package Circuito
 
 import (
-	Curve "ed25519/src/CurveEd25519"
-
 	"github.com/consensys/gnark-crypto/ecc"
 
 	//"github.com/consensys/gnark/backend"

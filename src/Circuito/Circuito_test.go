@@ -19,10 +19,10 @@ import (
 )
 
 /*func TestIntToPoint_1(t *testing.T) {
-	P := Curve.IntToPoint(big.NewInt(1))
-	fmt.Println(Curve.BX.Cmp(fr.Modulus()))
-	fmt.Println(Curve.BY.Cmp(fr.Modulus()))
-	if Curve.OnCurve(P.X, P.Y) == false {
+	P := curve_ed25519IntToPoint(big.NewInt(1))
+	fmt.Println(curve_ed25519BX.Cmp(fr.Modulus()))
+	fmt.Println(curve_ed25519BY.Cmp(fr.Modulus()))
+	if curve_ed25519OnCurve(P.X, P.Y) == false {
 		t.Errorf("P is not on curve")
 	}
 }*/
@@ -90,4 +90,3 @@ func TestSwapARWA(t *testing.T) {
 	SwapARWA(t, NT, BuildRandom[*Circuit48](NewCircuit48))
 	SwapARWA(t, NT, BuildRandom[*Circuit64](NewCircuit64))
 }
-

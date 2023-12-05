@@ -3,7 +3,7 @@ package main
 import (
 	crand "crypto/rand"
 	"ed25519/src/Circuito"
-	Curve "ed25519/src/CurveEd25519"
+	curve_ed25519 "ed25519/src/curve_ed25519"
 	"fmt"
 	"math/big"
 	"time"
@@ -28,14 +28,14 @@ func Profiler1() {
 	fmt.Println("Compilation time: ", compilationTime)
 	p.Stop()
 
-	var tR [1]Curve.PointCircuit
-	var tS [1]Curve.ElementO     //frontend.Variable
-	var tA [1]Curve.PointCircuit //td.Point
-	//var tMsg [NVAL]Curve.ElementF   // frontend.Variable
+	var tR [1]curve_ed25519PointCircuit
+	var tS [1]curve_ed25519ElementO     //frontend.Variable
+	var tA [1]curve_ed25519PointCircuit //td.Point
+	//var tMsg [NVAL]curve_ed25519ElementF   // frontend.Variable
 	var tMsg [1][Circuito.MLAR]uints.U8
 
 	for nv := 0; nv < 1; nv++ {
-		sk, _ := crand.Int(crand.Reader, Curve.Q)
+		sk, _ := crand.Int(crand.Reader, curve_ed25519Q)
 		var m [32]byte
 		crand.Read(m[:])
 		for i := 0; i < 32; i++ {
@@ -45,8 +45,8 @@ func Profiler1() {
 		sha512.Write(sk.Bytes())
 		H := sha512.Sum(nil)
 		s := new(big.Int).SetBytes(H[0:32])
-		A := Curve.IntToPoint(s)
-		tA[nv] = Curve.PointToCircuit(A)
+		A := curve_ed25519IntToPoint(s)
+		tA[nv] = curve_ed25519PointToCircuit(A)
 
 		prefix := H[32:64]
 		sha512.Reset()
@@ -55,20 +55,20 @@ func Profiler1() {
 		//sha512.Write(m.FillBytes(make([]byte, 32)))
 		r := new(big.Int).SetBytes(sha512.Sum(nil))
 		r = r.Mul(r, big.NewInt(8))
-		r = r.Mod(r, Curve.Ord)
+		r = r.Mod(r, curve_ed25519Ord)
 
-		R := Curve.IntToPoint(r)
-		tR[nv] = Curve.PointToCircuit(R)
+		R := curve_ed25519IntToPoint(r)
+		tR[nv] = curve_ed25519PointToCircuit(R)
 
 		sha512.Reset()
 		sha512.Write(R.Bytes())
 		sha512.Write(A.Bytes())
 		sha512.Write(m[:])
 		k := new(big.Int).SetBytes(sha512.Sum(nil))
-		k = k.Mod(k, Curve.Ord)
+		k = k.Mod(k, curve_ed25519Ord)
 		S := big.NewInt(0).Add(big.NewInt(0).Mul(k, s), r)
-		S.Mod(S, Curve.Ord)
-		tS[nv] = Curve.BigIntToElementO(S)
+		S.Mod(S, curve_ed25519Ord)
+		tS[nv] = curve_ed25519BigIntToElementO(S)
 	}
 	asignacion := Circuito.Circuit{
 		A:   tA,
@@ -107,14 +107,14 @@ func Profiler16() {
 	fmt.Println("Compilation time: ", compilationTime)
 	p.Stop()
 
-	var tR [16]Curve.PointCircuit
-	var tS [16]Curve.ElementO     //frontend.Variable
-	var tA [16]Curve.PointCircuit //td.Point
-	//var tMsg [NVAL]Curve.ElementF   // frontend.Variable
+	var tR [16]curve_ed25519PointCircuit
+	var tS [16]curve_ed25519ElementO     //frontend.Variable
+	var tA [16]curve_ed25519PointCircuit //td.Point
+	//var tMsg [NVAL]curve_ed25519ElementF   // frontend.Variable
 	var tMsg [16][Circuito.MLAR]uints.U8
 
 	for nv := 0; nv < 16; nv++ {
-		sk, _ := crand.Int(crand.Reader, Curve.Q)
+		sk, _ := crand.Int(crand.Reader, curve_ed25519Q)
 		var m [Circuito.MLAR]byte
 		crand.Read(m[:])
 		for i := 0; i < Circuito.MLAR; i++ {
@@ -124,8 +124,8 @@ func Profiler16() {
 		sha512.Write(sk.Bytes())
 		H := sha512.Sum(nil)
 		s := new(big.Int).SetBytes(H[0:32])
-		A := Curve.IntToPoint(s)
-		tA[nv] = Curve.PointToCircuit(A)
+		A := curve_ed25519IntToPoint(s)
+		tA[nv] = curve_ed25519PointToCircuit(A)
 
 		prefix := H[32:64]
 		sha512.Reset()
@@ -134,20 +134,20 @@ func Profiler16() {
 		//sha512.Write(m.FillBytes(make([]byte, 32)))
 		r := new(big.Int).SetBytes(sha512.Sum(nil))
 		r = r.Mul(r, big.NewInt(8))
-		r = r.Mod(r, Curve.Ord)
+		r = r.Mod(r, curve_ed25519Ord)
 
-		R := Curve.IntToPoint(r)
-		tR[nv] = Curve.PointToCircuit(R)
+		R := curve_ed25519IntToPoint(r)
+		tR[nv] = curve_ed25519PointToCircuit(R)
 
 		sha512.Reset()
 		sha512.Write(R.Bytes())
 		sha512.Write(A.Bytes())
 		sha512.Write(m[:])
 		k := new(big.Int).SetBytes(sha512.Sum(nil))
-		k = k.Mod(k, Curve.Ord)
+		k = k.Mod(k, curve_ed25519Ord)
 		S := big.NewInt(0).Add(big.NewInt(0).Mul(k, s), r)
-		S.Mod(S, Curve.Ord)
-		tS[nv] = Curve.BigIntToElementO(S)
+		S.Mod(S, curve_ed25519Ord)
+		tS[nv] = curve_ed25519BigIntToElementO(S)
 	}
 	asignacion := Circuito.Circuit16{
 		A:   tA,
@@ -186,14 +186,14 @@ func Profiler32() {
 	fmt.Println("Compilation time: ", compilationTime)
 	p.Stop()
 
-	var tR [32]Curve.PointCircuit
-	var tS [32]Curve.ElementO     //frontend.Variable
-	var tA [32]Curve.PointCircuit //td.Point
-	//var tMsg [NVAL]Curve.ElementF   // frontend.Variable
+	var tR [32]curve_ed25519PointCircuit
+	var tS [32]curve_ed25519ElementO     //frontend.Variable
+	var tA [32]curve_ed25519PointCircuit //td.Point
+	//var tMsg [NVAL]curve_ed25519ElementF   // frontend.Variable
 	var tMsg [32][32]uints.U8
 
 	for nv := 0; nv < 32; nv++ {
-		sk, _ := crand.Int(crand.Reader, Curve.Q)
+		sk, _ := crand.Int(crand.Reader, curve_ed25519Q)
 		var m [32]byte
 		crand.Read(m[:])
 		for i := 0; i < 32; i++ {
@@ -203,8 +203,8 @@ func Profiler32() {
 		sha512.Write(sk.Bytes())
 		H := sha512.Sum(nil)
 		s := new(big.Int).SetBytes(H[0:32])
-		A := Curve.IntToPoint(s)
-		tA[nv] = Curve.PointToCircuit(A)
+		A := curve_ed25519IntToPoint(s)
+		tA[nv] = curve_ed25519PointToCircuit(A)
 
 		prefix := H[32:64]
 		sha512.Reset()
@@ -213,20 +213,20 @@ func Profiler32() {
 		//sha512.Write(m.FillBytes(make([]byte, 32)))
 		r := new(big.Int).SetBytes(sha512.Sum(nil))
 		r = r.Mul(r, big.NewInt(8))
-		r = r.Mod(r, Curve.Ord)
+		r = r.Mod(r, curve_ed25519Ord)
 
-		R := Curve.IntToPoint(r)
-		tR[nv] = Curve.PointToCircuit(R)
+		R := curve_ed25519IntToPoint(r)
+		tR[nv] = curve_ed25519PointToCircuit(R)
 
 		sha512.Reset()
 		sha512.Write(R.Bytes())
 		sha512.Write(A.Bytes())
 		sha512.Write(m[:])
 		k := new(big.Int).SetBytes(sha512.Sum(nil))
-		k = k.Mod(k, Curve.Ord)
+		k = k.Mod(k, curve_ed25519Ord)
 		S := big.NewInt(0).Add(big.NewInt(0).Mul(k, s), r)
-		S.Mod(S, Curve.Ord)
-		tS[nv] = Curve.BigIntToElementO(S)
+		S.Mod(S, curve_ed25519Ord)
+		tS[nv] = curve_ed25519BigIntToElementO(S)
 	}
 	asignacion := Circuito.Circuit32{
 		A:   tA,
@@ -265,14 +265,14 @@ func Profiler48() {
 	fmt.Println("Compilation time: ", compilationTime)
 	p.Stop()
 
-	var tR [48]Curve.PointCircuit
-	var tS [48]Curve.ElementO     //frontend.Variable
-	var tA [48]Curve.PointCircuit //td.Point
-	//var tMsg [NVAL]Curve.ElementF   // frontend.Variable
+	var tR [48]curve_ed25519PointCircuit
+	var tS [48]curve_ed25519ElementO     //frontend.Variable
+	var tA [48]curve_ed25519PointCircuit //td.Point
+	//var tMsg [NVAL]curve_ed25519ElementF   // frontend.Variable
 	var tMsg [48][32]uints.U8
 
 	for nv := 0; nv < 48; nv++ {
-		sk, _ := crand.Int(crand.Reader, Curve.Q)
+		sk, _ := crand.Int(crand.Reader, curve_ed25519Q)
 		var m [32]byte
 		crand.Read(m[:])
 		for i := 0; i < 32; i++ {
@@ -282,8 +282,8 @@ func Profiler48() {
 		sha512.Write(sk.Bytes())
 		H := sha512.Sum(nil)
 		s := new(big.Int).SetBytes(H[0:32])
-		A := Curve.IntToPoint(s)
-		tA[nv] = Curve.PointToCircuit(A)
+		A := curve_ed25519IntToPoint(s)
+		tA[nv] = curve_ed25519PointToCircuit(A)
 
 		prefix := H[32:64]
 		sha512.Reset()
@@ -292,20 +292,20 @@ func Profiler48() {
 		//sha512.Write(m.FillBytes(make([]byte, 32)))
 		r := new(big.Int).SetBytes(sha512.Sum(nil))
 		r = r.Mul(r, big.NewInt(8))
-		r = r.Mod(r, Curve.Ord)
+		r = r.Mod(r, curve_ed25519Ord)
 
-		R := Curve.IntToPoint(r)
-		tR[nv] = Curve.PointToCircuit(R)
+		R := curve_ed25519IntToPoint(r)
+		tR[nv] = curve_ed25519PointToCircuit(R)
 
 		sha512.Reset()
 		sha512.Write(R.Bytes())
 		sha512.Write(A.Bytes())
 		sha512.Write(m[:])
 		k := new(big.Int).SetBytes(sha512.Sum(nil))
-		k = k.Mod(k, Curve.Ord)
+		k = k.Mod(k, curve_ed25519Ord)
 		S := big.NewInt(0).Add(big.NewInt(0).Mul(k, s), r)
-		S.Mod(S, Curve.Ord)
-		tS[nv] = Curve.BigIntToElementO(S)
+		S.Mod(S, curve_ed25519Ord)
+		tS[nv] = curve_ed25519BigIntToElementO(S)
 	}
 	asignacion := Circuito.Circuit48{
 		A:   tA,
@@ -344,14 +344,14 @@ func Profiler64() {
 	fmt.Println("Compilation time: ", compilationTime)
 	p.Stop()
 
-	var tR [64]Curve.PointCircuit
-	var tS [64]Curve.ElementO     //frontend.Variable
-	var tA [64]Curve.PointCircuit //td.Point
-	//var tMsg [NVAL]Curve.ElementF   // frontend.Variable
+	var tR [64]curve_ed25519PointCircuit
+	var tS [64]curve_ed25519ElementO     //frontend.Variable
+	var tA [64]curve_ed25519PointCircuit //td.Point
+	//var tMsg [NVAL]curve_ed25519ElementF   // frontend.Variable
 	var tMsg [64][32]uints.U8
 
 	for nv := 0; nv < 64; nv++ {
-		sk, _ := crand.Int(crand.Reader, Curve.Q)
+		sk, _ := crand.Int(crand.Reader, curve_ed25519Q)
 		var m [32]byte
 		crand.Read(m[:])
 		for i := 0; i < 32; i++ {
@@ -361,8 +361,8 @@ func Profiler64() {
 		sha512.Write(sk.Bytes())
 		H := sha512.Sum(nil)
 		s := new(big.Int).SetBytes(H[0:32])
-		A := Curve.IntToPoint(s)
-		tA[nv] = Curve.PointToCircuit(A)
+		A := curve_ed25519IntToPoint(s)
+		tA[nv] = curve_ed25519PointToCircuit(A)
 
 		prefix := H[32:64]
 		sha512.Reset()
@@ -371,20 +371,20 @@ func Profiler64() {
 		//sha512.Write(m.FillBytes(make([]byte, 32)))
 		r := new(big.Int).SetBytes(sha512.Sum(nil))
 		r = r.Mul(r, big.NewInt(8))
-		r = r.Mod(r, Curve.Ord)
+		r = r.Mod(r, curve_ed25519Ord)
 
-		R := Curve.IntToPoint(r)
-		tR[nv] = Curve.PointToCircuit(R)
+		R := curve_ed25519IntToPoint(r)
+		tR[nv] = curve_ed25519PointToCircuit(R)
 
 		sha512.Reset()
 		sha512.Write(R.Bytes())
 		sha512.Write(A.Bytes())
 		sha512.Write(m[:])
 		k := new(big.Int).SetBytes(sha512.Sum(nil))
-		k = k.Mod(k, Curve.Ord)
+		k = k.Mod(k, curve_ed25519Ord)
 		S := big.NewInt(0).Add(big.NewInt(0).Mul(k, s), r)
-		S.Mod(S, Curve.Ord)
-		tS[nv] = Curve.BigIntToElementO(S)
+		S.Mod(S, curve_ed25519Ord)
+		tS[nv] = curve_ed25519BigIntToElementO(S)
 	}
 	asignacion := Circuito.Circuit64{
 		A:   tA,

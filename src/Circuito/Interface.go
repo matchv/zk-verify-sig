@@ -1,7 +1,7 @@
 package Circuito
 
 import (
-	Curve "ed25519/src/CurveEd25519"
+	"ed25519/src/curve_ed25519"
 	"math/big"
 
 	crand "crypto/rand"
@@ -14,12 +14,12 @@ import (
 
 type Interface interface {
 	Define(api frontend.API) error
-	GetR() []Curve.PointCircuit
-	SetR(value []Curve.PointCircuit)
-	GetS() []Curve.ElementO
-	SetS(value []Curve.ElementO)
-	GetA() []Curve.PointCircuit
-	SetA(value []Curve.PointCircuit)
+	GetR() []curve_ed25519.PointCircuit
+	SetR(value []curve_ed25519.PointCircuit)
+	GetS() []curve_ed25519.ElementO
+	SetS(value []curve_ed25519.ElementO)
+	GetA() []curve_ed25519.PointCircuit
+	SetA(value []curve_ed25519.PointCircuit)
 	GetMsg() [][MLAR]uints.U8
 	SetMsg(value [][MLAR]uints.U8)
 }
@@ -29,11 +29,11 @@ func BuildRandom[C Interface](nuevo func() C) func() C {
 		circuit := nuevo()
 		nval := len(circuit.GetR())
 		tMsg := make([][MLAR]uints.U8, nval)
-		tA := make([]Curve.PointCircuit, nval)
-		tR := make([]Curve.PointCircuit, nval)
-		tS := make([]Curve.ElementO, nval)
+		tA := make([]curve_ed25519.PointCircuit, nval)
+		tR := make([]curve_ed25519.PointCircuit, nval)
+		tS := make([]curve_ed25519.ElementO, nval)
 		for nv := 0; nv < nval; nv++ {
-			sk, _ := crand.Int(crand.Reader, Curve.Q)
+			sk, _ := crand.Int(crand.Reader, curve_ed25519.Q)
 			var m [MLAR]byte
 			crand.Read(m[:])
 			for i := 0; i < MLAR; i++ {
@@ -44,8 +44,8 @@ func BuildRandom[C Interface](nuevo func() C) func() C {
 			sha512.Write(sk.Bytes())
 			H := sha512.Sum(nil)
 			s := new(big.Int).SetBytes(H[0:32])
-			A := Curve.IntToPoint(s)
-			tA[nv] = Curve.PointToCircuit(A)
+			A := curve_ed25519.IntToPoint(s)
+			tA[nv] = curve_ed25519.PointToCircuit(A)
 
 			prefix := H[32:64]
 			sha512.Reset()
@@ -53,20 +53,20 @@ func BuildRandom[C Interface](nuevo func() C) func() C {
 			sha512.Write(m[:])
 			r := new(big.Int).SetBytes(sha512.Sum(nil))
 			r = r.Mul(r, big.NewInt(8))
-			r = r.Mod(r, Curve.Ord)
+			r = r.Mod(r, curve_ed25519.Ord)
 
-			R := Curve.IntToPoint(r)
-			tR[nv] = Curve.PointToCircuit(R)
+			R := curve_ed25519.IntToPoint(r)
+			tR[nv] = curve_ed25519.PointToCircuit(R)
 			sha512.Reset()
 			sha512.Write(R.Bytes())
 			sha512.Write(A.Bytes())
 			sha512.Write(m[:])
 			k := new(big.Int).SetBytes(sha512.Sum(nil))
-			k = k.Mod(k, Curve.Ord)
+			k = k.Mod(k, curve_ed25519.Ord)
 
 			S := big.NewInt(0).Add(big.NewInt(0).Mul(k, s), r)
-			S.Mod(S, Curve.Ord)
-			tS[nv] = Curve.BigIntToElementO(S)
+			S.Mod(S, curve_ed25519.Ord)
+			tS[nv] = curve_ed25519.BigIntToElementO(S)
 		}
 		circuit.SetR(tR)
 		circuit.SetS(tS)
@@ -77,19 +77,19 @@ func BuildRandom[C Interface](nuevo func() C) func() C {
 	return Random
 }
 
-func InputToCircuit[C Interface](circuit C, R []Curve.Point, S []*big.Int, A []Curve.Point, msg [][MLAR]byte) C {
+func InputToCircuit[C Interface](circuit C, R []curve_ed25519.Point, S []*big.Int, A []curve_ed25519.Point, msg [][MLAR]byte) C {
 	nval := len(A)
 	tMsg := make([][MLAR]uints.U8, nval)
-	tA := make([]Curve.PointCircuit, nval)
-	tR := make([]Curve.PointCircuit, nval)
-	tS := make([]Curve.ElementO, nval)
+	tA := make([]curve_ed25519.PointCircuit, nval)
+	tR := make([]curve_ed25519.PointCircuit, nval)
+	tS := make([]curve_ed25519.ElementO, nval)
 	for nv := 0; nv < nval; nv++ {
 		for i := 0; i < MLAR; i++ {
 			tMsg[nv][i] = uints.NewU8(msg[nv][i])
 		}
-		tA[nv] = Curve.PointToCircuit(A[nv])
-		tR[nv] = Curve.PointToCircuit(R[nv])
-		tS[nv] = Curve.BigIntToElementO(S[nv])
+		tA[nv] = curve_ed25519.PointToCircuit(A[nv])
+		tR[nv] = curve_ed25519.PointToCircuit(R[nv])
+		tS[nv] = curve_ed25519.BigIntToElementO(S[nv])
 	}
 	circuit.SetR(tR)
 	circuit.SetS(tS)
