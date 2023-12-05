@@ -17,6 +17,7 @@ const BYC = "4631683569492647816942839400347516314130799386625622561578303360316
 const BUC = "9"
 const BVC = "14781619447589544791020593568409986887264606134616475288964881837755586237401"
 
+
 type PointCircuit struct {
 	X, Y ElementQ
 }
@@ -136,3 +137,5 @@ func HashToValue(uapi *uints.BinaryField[uints.U64], api frontend.API, hash []ui
 
 	return res
 }
+
+//ssh -i pub_rsa lautaro@34.118.49.208
