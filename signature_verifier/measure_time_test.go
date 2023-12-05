@@ -1,7 +1,6 @@
 package signature_verifier
 
 import (
-	"ed25519/signature_verifier"
 	"fmt"
 	"math"
 
@@ -36,7 +35,7 @@ func Measures(v []time.Duration) (float64, float64) {
 	return avg, math.Sqrt(sigma)
 }
 
-func Timer[C signature_verifier.Interface](t *testing.T, name string, New func() C) string {
+func Timer[C Interface](t *testing.T, name string, New func() C) string {
 	assert := test.NewAssert(t)
 	p := profile.Start()
 	startCompilation := time.Now()
@@ -76,11 +75,11 @@ func Timer[C signature_verifier.Interface](t *testing.T, name string, New func()
 
 func TestTime(t *testing.T) {
 	out := ""
-	out = out + Timer[*signature_verifier.Circuit](t, "NVAL = 1", signature_verifier.BuildRandom[*signature_verifier.Circuit](signature_verifier.NewCircuit))
-	// out = out + Timer[*signature_verifier.Circuit16](t, "NVAL = 16", signature_verifier.BuildRandom[*signature_verifier.Circuit16](signature_verifier.NewCircuit16))
-	// out = out + Timer[*signature_verifier.Circuit32](t, "NVAL = 32", signature_verifier.BuildRandom[*signature_verifier.Circuit32](signature_verifier.NewCircuit32))
-	// out = out + Timer[*signature_verifier.Circuit48](t, "NVAL = 48", signature_verifier.BuildRandom[*signature_verifier.Circuit48](signature_verifier.NewCircuit48))
-	// out = out + Timer[*signature_verifier.Circuit64](t, "NVAL = 64", signature_verifier.BuildRandom[*signature_verifier.Circuit64](signature_verifier.NewCircuit64))
+	out = out + Timer[*Circuit](t, "NVAL = 1", BuildRandom[*Circuit](NewCircuit))
+	// out = out + Timer[*Circuit16](t, "NVAL = 16", BuildRandom[*Circuit16](NewCircuit16))
+	// out = out + Timer[*Circuit32](t, "NVAL = 32", BuildRandom[*Circuit32](NewCircuit32))
+	// out = out + Timer[*Circuit48](t, "NVAL = 48", BuildRandom[*Circuit48](NewCircuit48))
+	// out = out + Timer[*Circuit64](t, "NVAL = 64", BuildRandom[*Circuit64](NewCircuit64))
 
 	fmt.Println(out)
 }
