@@ -1,6 +1,8 @@
-package Circuito
+package signature_verifier
 
 import (
+	"ed25519/curve_ed25519"
+
 	"github.com/consensys/gnark-crypto/ecc"
 
 	//"github.com/consensys/gnark/backend"
@@ -31,7 +33,7 @@ func SignatureSample(t *testing.T) {
 
 	/// Proceso de firmar los mensajes
 	for nv := 0; nv < nval; nv++ {
-		sk, _ := crand.Int(crand.Reader, Curve.Q)
+		sk, _ := crand.Int(crand.Reader, curve_ed25519.Q)
 		crand.Read(msg[nv][:])
 		sig[nv], pk[nv] = Sign(msg[nv], sk)
 	}
@@ -58,7 +60,7 @@ func BatchSignatureSample(t *testing.T) {
 	var msg [nval][MLAR]byte
 	var sk [nval]*big.Int
 	for nv := 0; nv < nval; nv++ {
-		sk[nv], _ = crand.Int(crand.Reader, Curve.Q)
+		sk[nv], _ = crand.Int(crand.Reader, curve_ed25519.Q)
 		crand.Read(msg[nv][:])
 	}
 

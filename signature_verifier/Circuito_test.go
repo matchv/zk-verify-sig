@@ -1,4 +1,4 @@
-package Circuito
+package signature_verifier
 
 import (
 	"fmt"

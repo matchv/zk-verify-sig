@@ -1,7 +1,7 @@
-package Circuito
+package signature_verifier
 
 import (
-	"ed25519/src/curve_ed25519"
+	"ed25519/curve_ed25519"
 	"math/big"
 
 	crand "crypto/rand"

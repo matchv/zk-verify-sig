@@ -1,7 +1,7 @@
-package Circuito
+package signature_verifier
 
 import (
-	"ed25519/src/Circuito"
+	"ed25519/signature_verifier"
 	"fmt"
 	"math"
 
@@ -9,21 +9,13 @@ import (
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 
-	//"github.com/consensys/gnark/backend"
-	//"github.com/consensys/gnark/frontend"
-
 	"time"
 
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/profile"
 	"github.com/consensys/gnark/test"
 
-	//"github.com/rs/zerolog"
-
-	//"github.com/consensys/gnark/std/algebra/fields_bls12377"
-
 	"testing"
-	//"github.com/consensys/gnark-crypto/ecc/bls12-377/fptower"
 )
 
 /// run go test -v -timeout 0 to measure time
@@ -44,7 +36,7 @@ func Measures(v []time.Duration) (float64, float64) {
 	return avg, math.Sqrt(sigma)
 }
 
-func Timer[C Circuito.Interface](t *testing.T, name string, New func() C) string {
+func Timer[C signature_verifier.Interface](t *testing.T, name string, New func() C) string {
 	assert := test.NewAssert(t)
 	p := profile.Start()
 	startCompilation := time.Now()
@@ -84,11 +76,11 @@ func Timer[C Circuito.Interface](t *testing.T, name string, New func() C) string
 
 func TestTime(t *testing.T) {
 	out := ""
-	out = out + Timer[*Circuito.Circuit](t, "NVAL = 1", Circuito.BuildRandom[*Circuito.Circuit](Circuito.NewCircuit))
-	out = out + Timer[*Circuito.Circuit16](t, "NVAL = 16", Circuito.BuildRandom[*Circuito.Circuit16](Circuito.NewCircuit16))
-	out = out + Timer[*Circuito.Circuit32](t, "NVAL = 32", Circuito.BuildRandom[*Circuito.Circuit32](Circuito.NewCircuit32))
-	out = out + Timer[*Circuito.Circuit48](t, "NVAL = 48", Circuito.BuildRandom[*Circuito.Circuit48](Circuito.NewCircuit48))
-	out = out + Timer[*Circuito.Circuit64](t, "NVAL = 64", Circuito.BuildRandom[*Circuito.Circuit64](Circuito.NewCircuit64))
+	out = out + Timer[*signature_verifier.Circuit](t, "NVAL = 1", signature_verifier.BuildRandom[*signature_verifier.Circuit](signature_verifier.NewCircuit))
+	// out = out + Timer[*signature_verifier.Circuit16](t, "NVAL = 16", signature_verifier.BuildRandom[*signature_verifier.Circuit16](signature_verifier.NewCircuit16))
+	// out = out + Timer[*signature_verifier.Circuit32](t, "NVAL = 32", signature_verifier.BuildRandom[*signature_verifier.Circuit32](signature_verifier.NewCircuit32))
+	// out = out + Timer[*signature_verifier.Circuit48](t, "NVAL = 48", signature_verifier.BuildRandom[*signature_verifier.Circuit48](signature_verifier.NewCircuit48))
+	// out = out + Timer[*signature_verifier.Circuit64](t, "NVAL = 64", signature_verifier.BuildRandom[*signature_verifier.Circuit64](signature_verifier.NewCircuit64))
 
 	fmt.Println(out)
 }

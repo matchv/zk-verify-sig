@@ -1,23 +1,23 @@
-package Circuito
+package signature_verifier
 
 import (
-	"ed25519/src/curve_ed25519"
+	"ed25519/curve_ed25519"
 
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/hash/sha3"
 	"github.com/consensys/gnark/std/math/uints"
 )
 
-type Circuit48 struct {
-	R   [48]curve_ed25519.PointCircuit `gnark:",public"`
-	S   [48]curve_ed25519.ElementO     `gnark:",public"`
-	A   [48]curve_ed25519.PointCircuit `gnark:",public"`
-	Msg [48][MLAR]uints.U8             `gnark:",public"`
+type Circuit64 struct {
+	R   [64]curve_ed25519.PointCircuit `gnark:",public"`
+	S   [64]curve_ed25519.ElementO     `gnark:",public"`
+	A   [64]curve_ed25519.PointCircuit `gnark:",public"`
+	Msg [64][MLAR]uints.U8             `gnark:",public"`
 }
 
-func (circuit *Circuit48) Define(api frontend.API) error {
+func (circuit *Circuit64) Define(api frontend.API) error {
 
-	for i := 0; i < 48; i++ {
+	for i := 0; i < 64; i++ {
 
 		curve_ed25519.OnCurveCircuit(circuit.R[i], api)
 		curve_ed25519.OnCurveCircuit(circuit.A[i], api)
@@ -32,7 +32,9 @@ func (circuit *Circuit48) Define(api frontend.API) error {
 
 		temp := sha512.Sum()
 		k := curve_ed25519.HashToValueO(uapi, api, temp)
+
 		B := curve_ed25519.MulByScalarCircuitWithPows(curve_ed25519.GetBaseCircuit(), circuit.S[i], curve_ed25519.GetBaseCircuitPows(), api)
+
 		A := curve_ed25519.MulByScalarCircuit(circuit.A[i], curve_ed25519.ProdElementO(k, curve_ed25519.StringToElementO("8"), api), api)
 		R := circuit.R[i]
 		for j := 0; j < 3; j++ {
@@ -43,42 +45,41 @@ func (circuit *Circuit48) Define(api frontend.API) error {
 
 		curve_ed25519.AssertEqualElementQ(A.X, B.X, api)
 		curve_ed25519.AssertEqualElementQ(A.Y, B.Y, api)
-
 	}
 	return nil
 }
 
-func (circuit *Circuit48) GetR() []curve_ed25519.PointCircuit {
+func (circuit *Circuit64) GetR() []curve_ed25519.PointCircuit {
 	return circuit.R[:]
 }
 
-func (circuit *Circuit48) SetR(values []curve_ed25519.PointCircuit) {
+func (circuit *Circuit64) SetR(values []curve_ed25519.PointCircuit) {
 	copy(circuit.R[:], values)
 }
-func (circuit *Circuit48) GetS() []curve_ed25519.ElementO {
+func (circuit *Circuit64) GetS() []curve_ed25519.ElementO {
 	return circuit.S[:]
 }
 
-func (circuit *Circuit48) SetS(values []curve_ed25519.ElementO) {
+func (circuit *Circuit64) SetS(values []curve_ed25519.ElementO) {
 	copy(circuit.S[:], values)
 }
 
-func (circuit *Circuit48) GetA() []curve_ed25519.PointCircuit {
+func (circuit *Circuit64) GetA() []curve_ed25519.PointCircuit {
 	return circuit.A[:]
 }
 
-func (circuit *Circuit48) SetA(values []curve_ed25519.PointCircuit) {
+func (circuit *Circuit64) SetA(values []curve_ed25519.PointCircuit) {
 	copy(circuit.A[:], values)
 }
 
-func (circuit *Circuit48) GetMsg() [][MLAR]uints.U8 {
+func (circuit *Circuit64) GetMsg() [][MLAR]uints.U8 {
 	return circuit.Msg[:]
 }
 
-func (circuit *Circuit48) SetMsg(values [][MLAR]uints.U8) {
+func (circuit *Circuit64) SetMsg(values [][MLAR]uints.U8) {
 	copy(circuit.Msg[:], values)
 }
 
-func NewCircuit48() *Circuit48 {
-	return new(Circuit48)
+func NewCircuit64() *Circuit64 {
+	return new(Circuit64)
 }
