@@ -8,7 +8,7 @@ import (
 	"github.com/consensys/gnark/std/math/uints"
 )
 
-const NVAL = 3
+const NVAL = 1
 const MLAR = 115 /// d(nbConstrains)/d(MLAR) aprox 5.000
 
 // / Signature : R.X, R.Y, S
