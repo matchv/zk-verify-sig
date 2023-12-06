@@ -205,3 +205,20 @@ func TestAddInCurve(t *testing.T) {
 		}
 	}
 }
+
+func TestCompressForm(t *testing.T) {
+	for nt := 0; nt < 10; nt++ {
+		S, _ := crand.Int(crand.Reader, Q)
+		A := MulByScalar(BASE, S)
+		if OnCurve(A.X, A.Y) == false {
+			t.Errorf("Error in Compress Form")
+		}
+		fmt.Println(A.X, " , ", A.Y)
+		compress := A.CompressForm()
+		Ap := CompressToPoint(compress)
+		if Ap.X.Cmp(A.X) != 0 || Ap.Y.Cmp(A.Y) != 0 {
+			t.Errorf(Ap.X.String() + " vs " + A.X.String() + " , " + Ap.Y.String() + " vs " + A.Y.String())
+			t.Errorf("Error in Compress Form")
+		}
+	}
+}

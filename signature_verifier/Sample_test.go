@@ -41,7 +41,7 @@ func SignatureSample(t *testing.T) {
 	/// Proceso de verificar los mensajes
 	circuit := NewCircuit16()
 	R, S, A := BatchInputFromBytes(pk[:], sig[:])
-	InputToCircuit[*Circuit16](circuit, R, S, A, msg[:])
+	InputToCircuit(circuit, R, S, A, msg[:])
 	assert := test.NewAssert(t)
 	assert.NoError(test.IsSolved(circuit, circuit, ecc.BN254.ScalarField()))
 }
@@ -66,16 +66,39 @@ func BatchSignatureSample(t *testing.T) {
 
 	/// Con los mensajes y claves secretas construyo las firmas y claves publicas
 
-	sig, pk := SignBatch(msg[:], sk[:])
+	sig, pk := BatchSign(msg[:], sk[:])
 
 	/// Con las firmas y las claves publicas verifico los mensajes. Regla memotecnica: Algoritmo RSA
 	circuit := NewCircuit16()
 	R, S, A := BatchInputFromBytes(pk[:], sig[:])
-	InputToCircuit[*Circuit16](circuit, R, S, A, msg[:])
+	InputToCircuit(circuit, R, S, A, msg[:])
 	assert := test.NewAssert(t)
 	assert.NoError(test.IsSolved(circuit, circuit, ecc.BN254.ScalarField()))
 }
 
 func TestSignatureBatch(t *testing.T) {
 	BatchSignatureSample(t)
+}
+
+func BatchCompressSample(t *testing.T, circuit Interface) {
+	nval := len(circuit.GetA())
+	msg := make([][MLAR]byte, nval)
+	sk := make([]*big.Int, nval)
+	for nv := 0; nv < nval; nv++ {
+		sk[nv], _ = crand.Int(crand.Reader, curve_ed25519.Q)
+		crand.Read(msg[nv][:])
+	}
+	compressSig, compressPk := BatchSignCompress(msg[:], sk[:])
+
+	/// Recupero
+
+	R, S, A := BatchCompressToInput(compressSig, compressPk)
+	InputToCircuit(circuit, R, S, A, msg[:])
+	assert := test.NewAssert(t)
+	assert.NoError(test.IsSolved(circuit, circuit, ecc.BN254.ScalarField()))
+}
+
+func TestSignatureBatchCompress(t *testing.T) {
+	circuit := NewCircuit16()
+	BatchCompressSample(t, circuit)
 }

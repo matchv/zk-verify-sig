@@ -21,6 +21,7 @@ import (
 	//	td "github.com/consensys/gnark/std/algebra/native/twistededwards"
 	//	sha3 "golang.org/x/crypto/sha3"
 
+	"fmt"
 	"math/big"
 )
 
@@ -36,6 +37,56 @@ var BV *big.Int = new(big.Int)
 
 type Point struct {
 	X, Y *big.Int
+}
+
+// / Uses Little endian
+
+func (p *Point) CompressForm() (res [32]byte) {
+	p.Y.FillBytes(res[:])
+	if p.X.Bit(0) == 1 {
+		res[0] |= 0x80
+	}
+
+	// Reverse the array
+	for i := 0; i < 16; i++ {
+		res[i], res[31-i] = res[31-i], res[i]
+	}
+
+	return
+}
+
+func CompressToPoint(b [32]byte) Point {
+	var res Point
+	tb := b
+	tb[31] &= 0x7F
+	for i := 0; i < 16; i++ {
+		tb[i], tb[31-i] = tb[31-i], tb[i]
+	}
+
+	res.Y = new(big.Int).SetBytes(tb[:])
+	fmt.Println(res.Y)
+	num := big.NewInt(0).Exp(res.Y, big.NewInt(2), Q)
+	num = big.NewInt(0).Sub(num, big.NewInt(1))
+	num = big.NewInt(0).Add(num, Q)
+	num = big.NewInt(0).Mod(num, Q)
+
+	den := big.NewInt(0).Exp(res.Y, big.NewInt(2), Q)
+	den = big.NewInt(0).Mul(den, D)
+	den = big.NewInt(0).Add(den, big.NewInt(1))
+	den = big.NewInt(0).Mod(den, Q)
+	den = big.NewInt(0).ModInverse(den, Q)
+
+	left := big.NewInt(0).Mul(num, den)
+	left = big.NewInt(0).Mod(left, Q)
+
+	fmt.Println(left)
+	res.X = big.NewInt(0).ModSqrt(left, Q)
+	fmt.Println(res.X)
+
+	if res.X.Bit(0) != uint(b[31]&0x80)>>7 {
+		res.X = big.NewInt(0).Sub(Q, res.X)
+	}
+	return res
 }
 
 func (p *Point) Bytes() []byte {

@@ -77,7 +77,7 @@ func BuildRandom[C Interface](nuevo func() C) func() C {
 	return Random
 }
 
-func InputToCircuit[C Interface](circuit C, R []curve_ed25519.Point, S []*big.Int, A []curve_ed25519.Point, msg [][MLAR]byte) C {
+func InputToCircuit(circuit Interface, R []curve_ed25519.Point, S []*big.Int, A []curve_ed25519.Point, msg [][MLAR]byte) Interface {
 	nval := len(A)
 	tMsg := make([][MLAR]uints.U8, nval)
 	tA := make([]curve_ed25519.PointCircuit, nval)
