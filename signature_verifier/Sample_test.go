@@ -120,16 +120,20 @@ func TestCompressedSignature(t *testing.T) {
 	signature, err := hex.DecodeString("68453a25c5df358a0cac5d264f905b8665aadb087e1d07b2ac9a2d1b72609e63b3042bcc8594009cf2ea2e53c2d017822e557867aa10c0c01aa3f7be31544804")
 	assert.Nil(t, err)
 
+	// assert that the input is correct, by verifying the message using non circuit cryptographic operations
 	assert.True(t, ed25519.Verify(pubKey, message, signature))
-	copy(signArray[:], signature)
 
+	// prepare the input for the circuit
+	copy(signArray[:], signature)
 	R, S, A := BatchCompressToInput([][64]byte{signArray}, [][32]byte{pubKeyArray})
 	msg := [][MLAR]byte{messageArray}
 
+	// create a circuit
 	circuit := NewCircuit()
-	// R, S, A := BatchInputFromBytes(pk[:], sig[:])
 	InputToCircuit(circuit, R, S, A, msg[:])
 	assert := test.NewAssert(t)
+
+	// verify
 	assert.NoError(test.IsSolved(circuit, circuit, ecc.BN254.ScalarField()))
 
 }
