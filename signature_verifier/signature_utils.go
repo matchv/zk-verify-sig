@@ -151,12 +151,14 @@ func BatchInputToCompress(R []curve_ed25519.Point, S []*big.Int, A []curve_ed255
 	return
 }
 
+// Decompresses a signature
 func CompressToInput(sig [64]byte, pk [32]byte) (R curve_ed25519.Point, S *big.Int, A curve_ed25519.Point) {
 	R, S = CompressToSignature(sig)
 	A = curve_ed25519.CompressToPoint(pk)
 	return
 }
 
+// Decompresses a batch of (signature, public keys)
 func BatchCompressToInput(sig [][64]byte, pk [][32]byte) (R []curve_ed25519.Point, S []*big.Int, A []curve_ed25519.Point) {
 	nval := len(sig)
 	R = make([]curve_ed25519.Point, nval)
