@@ -1,7 +1,6 @@
 package signature_verifier
 
 import (
-	"ed25519/curve_ed25519"
 	"encoding/hex"
 
 	"github.com/consensys/gnark-crypto/ecc"
@@ -9,7 +8,6 @@ import (
 
 	//"github.com/consensys/gnark/backend"
 	//"github.com/consensys/gnark/frontend"
-	"math/big"
 
 	"github.com/consensys/gnark/test"
 
@@ -17,10 +15,9 @@ import (
 
 	//"github.com/consensys/gnark/std/algebra/fields_bls12377"
 
-	"testing"
-
 	"crypto/ed25519"
 	crand "crypto/rand"
+	"testing"
 	//"github.com/consensys/gnark-crypto/ecc/bls12-377/fptower"
 )
 
@@ -36,7 +33,8 @@ func SignatureSample(t *testing.T) {
 
 	/// Proceso de firmar los mensajes
 	for nv := 0; nv < nval; nv++ {
-		sk, _ := crand.Int(crand.Reader, curve_ed25519.Q)
+		sk := make([]byte, 32)
+		crand.Read(sk[:])
 		crand.Read(msg[nv][:])
 		sig[nv], pk[nv] = Sign(msg[nv], sk)
 	}
@@ -61,9 +59,10 @@ func BatchSignatureSample(t *testing.T) {
 	const nval = 16
 	/// Creo los mensajes y claves secretas
 	var msg [nval][MLAR]byte
-	var sk [nval]*big.Int
+	var sk [nval][]byte
 	for nv := 0; nv < nval; nv++ {
-		sk[nv], _ = crand.Int(crand.Reader, curve_ed25519.Q)
+		sk[nv] = make([]byte, 32)
+		crand.Read(sk[nv][:])
 		crand.Read(msg[nv][:])
 	}
 
@@ -86,9 +85,10 @@ func TestSignatureBatch(t *testing.T) {
 func BatchCompressSample(t *testing.T, circuit Interface) {
 	nval := len(circuit.GetA())
 	msg := make([][MLAR]byte, nval)
-	sk := make([]*big.Int, nval)
+	sk := make([][]byte, nval)
 	for nv := 0; nv < nval; nv++ {
-		sk[nv], _ = crand.Int(crand.Reader, curve_ed25519.Q)
+		sk[nv] = make([]byte, 32)
+		crand.Read(sk[nv][:])
 		crand.Read(msg[nv][:])
 	}
 	compressSig, compressPk := BatchSignCompress(msg[:], sk[:])
@@ -125,7 +125,7 @@ func TestCompressedSignature(t *testing.T) {
 
 	// prepare the input for the circuit
 	copy(signArray[:], signature)
-	R, S, A := BatchCompressToInput([][64]byte{signArray}, [][32]byte{pubKeyArray})
+	R, S, A := BatchCompressToInput([][]byte{signArray[:]}, [][]byte{pubKeyArray[:]})
 	msg := [][MLAR]byte{messageArray}
 
 	// create a circuit

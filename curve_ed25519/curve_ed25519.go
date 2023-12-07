@@ -21,8 +21,9 @@ import (
 	//	td "github.com/consensys/gnark/std/algebra/native/twistededwards"
 	//	sha3 "golang.org/x/crypto/sha3"
 
-	"fmt"
 	"math/big"
+
+	"github.com/consensys/gnark/std/math/uints"
 )
 
 var Q *big.Int = new(big.Int)
@@ -41,8 +42,12 @@ type Point struct {
 
 // / Uses Little endian
 
-func (p *Point) CompressForm() (res [32]byte) {
+func (p *Point) CompressForm() (res []byte) {
+	res = make([]byte, 32)
 	p.Y.FillBytes(res[:])
+	if res[0]&0x80 == 0x80 {
+		panic("Error")
+	}
 	if p.X.Bit(0) == 1 {
 		res[0] |= 0x80
 	}
@@ -55,16 +60,25 @@ func (p *Point) CompressForm() (res [32]byte) {
 	return
 }
 
-func CompressToPoint(b [32]byte) Point {
+func (p *Point) CompressFormCircuit() (res []uints.U8) {
+	res = make([]uints.U8, 32)
+	temp := p.CompressForm()
+	for i := 0; i < 32; i++ {
+		res[i] = uints.NewU8(temp[i])
+	}
+	return
+}
+
+func CompressToPoint(b []byte) Point {
 	var res Point
-	tb := b
+	tb := make([]byte, 32)
+	copy(tb, b)
 	tb[31] &= 0x7F
 	for i := 0; i < 16; i++ {
 		tb[i], tb[31-i] = tb[31-i], tb[i]
 	}
 
 	res.Y = new(big.Int).SetBytes(tb[:])
-	fmt.Println(res.Y)
 	num := big.NewInt(0).Exp(res.Y, big.NewInt(2), Q)
 	num = big.NewInt(0).Sub(num, big.NewInt(1))
 	num = big.NewInt(0).Add(num, Q)
@@ -79,9 +93,7 @@ func CompressToPoint(b [32]byte) Point {
 	left := big.NewInt(0).Mul(num, den)
 	left = big.NewInt(0).Mod(left, Q)
 
-	fmt.Println(left)
 	res.X = big.NewInt(0).ModSqrt(left, Q)
-	fmt.Println(res.X)
 
 	if res.X.Bit(0) != uint(b[31]&0x80)>>7 {
 		res.X = big.NewInt(0).Sub(Q, res.X)
@@ -136,7 +148,7 @@ func MulByScalar(P Point, SO *big.Int) Point {
 	S := big.NewInt(0).Set(SO)
 	res := Point{big.NewInt(0), big.NewInt(1)}
 	for ; S.Cmp(big.NewInt(0)) > 0; S.Div(S, big.NewInt(2)) {
-		if big.NewInt(0).Mod(S, big.NewInt(2)).Cmp(big.NewInt(0)) == 1 {
+		if S.Bit(0) == 1 {
 			res = Add(res, P)
 		}
 		P = Add(P, P)

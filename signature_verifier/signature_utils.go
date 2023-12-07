@@ -4,8 +4,21 @@ import (
 	"ed25519/curve_ed25519"
 	"math/big"
 
-	csha3 "golang.org/x/crypto/sha3"
+	csha2 "crypto/sha512"
+
+	"github.com/consensys/gnark/constraint/solver"
+	"github.com/consensys/gnark/frontend"
+	//csha3 "golang.org/x/crypto/sha2"
 )
+
+func InvertArray[T any](in []T) (out []T) {
+	tam := len(in)
+	out = make([]T, tam)
+	for i := 0; i < tam; i++ {
+		out[i] = in[tam-1-i]
+	}
+	return
+}
 
 func BytesToSignature(sig [96]byte) (curve_ed25519.Point, *big.Int) {
 	RX := big.NewInt(0).SetBytes(sig[:32])
@@ -51,27 +64,37 @@ func BatchInputFromBytes(pk [][64]byte, sig [][96]byte) (R []curve_ed25519.Point
 	return
 }
 
-func Sign(msg [MLAR]byte, sk *big.Int) (signature [96]byte, pk [64]byte) {
-	sha512 := csha3.New512()
-	sha512.Write(sk.Bytes())
+func Campling(x []byte) (res *big.Int) {
+	w := make([]byte, 32)
+	copy(w[:], x[:])
+	w[0] &= 248
+	w[31] &= 63
+	w[31] |= 64
+	res = new(big.Int).SetBytes(InvertArray(w[:]))
+	res = res.Mod(res, curve_ed25519.Ord)
+	return
+}
+
+func Sign(msg [MLAR]byte, sk []byte) (signature [96]byte, pk [64]byte) {
+	sha512 := csha2.New()
+	sha512.Write(sk)
 	H := sha512.Sum(nil)
-	s := new(big.Int).SetBytes(H[0:32])
+	s := Campling(H[0:32])
 	A := curve_ed25519.IntToPoint(s)
 	prefix := H[32:64]
-	sha512.Reset()
+	sha512 = csha2.New()
 	sha512.Write(prefix)
 	sha512.Write(msg[:])
-	r := new(big.Int).SetBytes(sha512.Sum(nil))
-	r = r.Mul(r, big.NewInt(8))
+	r := big.NewInt(0).SetBytes(InvertArray(sha512.Sum(nil)))
 	r = r.Mod(r, curve_ed25519.Ord)
 
 	R := curve_ed25519.IntToPoint(r)
 
-	sha512.Reset()
-	sha512.Write(R.Bytes())
-	sha512.Write(A.Bytes())
+	sha512 = csha2.New()
+	sha512.Write(R.CompressForm())
+	sha512.Write(A.CompressForm())
 	sha512.Write(msg[:])
-	k := new(big.Int).SetBytes(sha512.Sum(nil))
+	k := big.NewInt(0).SetBytes(InvertArray(sha512.Sum(nil)))
 	k = k.Mod(k, curve_ed25519.Ord)
 
 	S := big.NewInt(0).Add(big.NewInt(0).Mul(k, s), r)
@@ -82,7 +105,7 @@ func Sign(msg [MLAR]byte, sk *big.Int) (signature [96]byte, pk [64]byte) {
 	return
 }
 
-func BatchSign(msg [][MLAR]byte, sk []*big.Int) (signature [][96]byte, pk [][64]byte) {
+func BatchSign(msg [][MLAR]byte, sk [][]byte) (signature [][96]byte, pk [][64]byte) {
 	nval := len(msg)
 	signature = make([][96]byte, nval)
 	pk = make([][64]byte, nval)
@@ -92,40 +115,37 @@ func BatchSign(msg [][MLAR]byte, sk []*big.Int) (signature [][96]byte, pk [][64]
 	return
 }
 
-func SignatureToCompress(R curve_ed25519.Point, S *big.Int) [64]byte {
-	var sig [64]byte
+func SignatureToCompress(R curve_ed25519.Point, S *big.Int) []byte {
+	sig := make([]byte, 64)
 	temp := R.CompressForm()
 	copy(sig[:32], temp[:])
-	S.FillBytes(sig[32:64])
+	temp2 := make([]byte, 32)
+	temp2 = S.FillBytes(temp2)
 	for i := 32; i < 64; i++ {
-		j := 63 - i + 32
-		sig[i], sig[j] = sig[j], sig[i]
+		j := 63 - i
+		sig[i] = temp2[j]
 	}
 	return sig
 }
 
-func BatchSignatureToCompress(R []curve_ed25519.Point, S []*big.Int) (sig [][64]byte) {
+func BatchSignatureToCompress(R []curve_ed25519.Point, S []*big.Int) (sig [][]byte) {
 	nval := len(R)
-	sig = make([][64]byte, nval)
+	sig = make([][]byte, nval)
 	for i := 0; i < nval; i++ {
 		sig[i] = SignatureToCompress(R[i], S[i])
 	}
 	return
 }
 
-func CompressToSignature(sig [64]byte) (R curve_ed25519.Point, S *big.Int) {
-	temp := [32]byte{}
+func CompressToSignature(sig []byte) (R curve_ed25519.Point, S *big.Int) {
+	temp := make([]byte, 32)
 	copy(temp[:], sig[:32])
 	R = curve_ed25519.CompressToPoint(temp)
-	for i := 32; i < 64; i++ {
-		j := 63 - i + 32
-		sig[i], sig[j] = sig[j], sig[i]
-	}
-	S = big.NewInt(0).SetBytes(sig[32:64])
+	S = big.NewInt(0).SetBytes(InvertArray(sig[32:64]))
 	return
 }
 
-func BatchCompressToSignature(sig [][64]byte) (R []curve_ed25519.Point, S []*big.Int) {
+func BatchCompressToSignature(sig [][]byte) (R []curve_ed25519.Point, S []*big.Int) {
 	nval := len(sig)
 	R = make([]curve_ed25519.Point, nval)
 	S = make([]*big.Int, nval)
@@ -135,16 +155,16 @@ func BatchCompressToSignature(sig [][64]byte) (R []curve_ed25519.Point, S []*big
 	return
 }
 
-func InputToCompress(R curve_ed25519.Point, S *big.Int, A curve_ed25519.Point) (sign [64]byte, pk [32]byte) {
+func InputToCompress(R curve_ed25519.Point, S *big.Int, A curve_ed25519.Point) (sign []byte, pk []byte) {
 	sign = SignatureToCompress(R, S)
-	pk = [32]byte(A.CompressForm())
+	pk = (A.CompressForm())
 	return
 }
 
-func BatchInputToCompress(R []curve_ed25519.Point, S []*big.Int, A []curve_ed25519.Point) (sign [][64]byte, pk [][32]byte) {
+func BatchInputToCompress(R []curve_ed25519.Point, S []*big.Int, A []curve_ed25519.Point) (sign [][]byte, pk [][]byte) {
 	nval := len(R)
-	sign = make([][64]byte, nval)
-	pk = make([][32]byte, nval)
+	sign = make([][]byte, nval)
+	pk = make([][]byte, nval)
 	for i := 0; i < nval; i++ {
 		sign[i], pk[i] = InputToCompress(R[i], S[i], A[i])
 	}
@@ -152,14 +172,14 @@ func BatchInputToCompress(R []curve_ed25519.Point, S []*big.Int, A []curve_ed255
 }
 
 // Decompresses a signature
-func CompressToInput(sig [64]byte, pk [32]byte) (R curve_ed25519.Point, S *big.Int, A curve_ed25519.Point) {
+func CompressToInput(sig []byte, pk []byte) (R curve_ed25519.Point, S *big.Int, A curve_ed25519.Point) {
 	R, S = CompressToSignature(sig)
 	A = curve_ed25519.CompressToPoint(pk)
 	return
 }
 
 // Decompresses a batch of (signature, public keys)
-func BatchCompressToInput(sig [][64]byte, pk [][32]byte) (R []curve_ed25519.Point, S []*big.Int, A []curve_ed25519.Point) {
+func BatchCompressToInput(sig [][]byte, pk [][]byte) (R []curve_ed25519.Point, S []*big.Int, A []curve_ed25519.Point) {
 	nval := len(sig)
 	R = make([]curve_ed25519.Point, nval)
 	S = make([]*big.Int, nval)
@@ -170,43 +190,67 @@ func BatchCompressToInput(sig [][64]byte, pk [][32]byte) (R []curve_ed25519.Poin
 	return
 }
 
-func SignCompress(msg [MLAR]byte, sk *big.Int) (signature [64]byte, pk [32]byte) {
-	sha512 := csha3.New512()
-	sha512.Write(sk.Bytes())
+func SignCompress(msg [MLAR]byte, sk []byte) (signature []byte, pk []byte) {
+	sha512 := csha2.New()
+	sha512.Write(sk)
 	H := sha512.Sum(nil)
-	s := new(big.Int).SetBytes(H[0:32])
+	s := Campling(H[0:32])
 	A := curve_ed25519.IntToPoint(s)
 	prefix := H[32:64]
-	sha512.Reset()
+	sha512 = csha2.New()
 	sha512.Write(prefix)
 	sha512.Write(msg[:])
-	r := new(big.Int).SetBytes(sha512.Sum(nil))
-	r = r.Mul(r, big.NewInt(8))
+	r := new(big.Int).SetBytes(InvertArray(sha512.Sum(nil)))
 	r = r.Mod(r, curve_ed25519.Ord)
 
 	R := curve_ed25519.IntToPoint(r)
 
-	sha512.Reset()
-	sha512.Write(R.Bytes())
-	sha512.Write(A.Bytes())
+	sha512 = csha2.New()
+	sha512.Write(R.CompressForm())
+	sha512.Write(A.CompressForm())
 	sha512.Write(msg[:])
-	k := new(big.Int).SetBytes(sha512.Sum(nil))
+	k := new(big.Int).SetBytes(InvertArray(sha512.Sum(nil)))
 	k = k.Mod(k, curve_ed25519.Ord)
 
 	S := big.NewInt(0).Add(big.NewInt(0).Mul(k, s), r)
 	S.Mod(S, curve_ed25519.Ord)
 
 	signature = SignatureToCompress(R, S)
-	pk = [32]byte(A.CompressForm())
+	pk = (A.CompressForm())
 	return
 }
 
-func BatchSignCompress(msg [][MLAR]byte, sk []*big.Int) (signature [][64]byte, pk [][32]byte) {
+func BatchSignCompress(msg [][MLAR]byte, sk [][]byte) (signature [][]byte, pk [][]byte) {
 	nval := len(msg)
-	signature = make([][64]byte, nval)
-	pk = make([][32]byte, nval)
+	signature = make([][]byte, nval)
+	pk = make([][]byte, nval)
 	for i := 0; i < nval; i++ {
 		signature[i], pk[i] = SignCompress(msg[i], sk[i])
 	}
 	return
+}
+
+func init() {
+	solver.RegisterHint(SHA2_512_MODORD_HINT)
+}
+
+func SHA2_512_MODORD_HINT(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
+	sha512 := csha2.New()
+	in := make([]byte, len(inputs))
+	for i := 0; i < len(inputs); i++ {
+		in[i] = byte(inputs[i].Uint64())
+	}
+	sha512.Write(in)
+	temp := InvertArray(sha512.Sum(nil))
+	X := big.NewInt(0).SetBytes(temp)
+	X = X.Mod(X, curve_ed25519.Ord)
+	result[0] = big.NewInt(0).Mod(X, curve_ed25519.FieldBase)
+	result[1] = big.NewInt(0).Div(X, curve_ed25519.FieldBase)
+	return nil
+}
+
+func SHA2_512_MODORD(api frontend.API, inputs []frontend.Variable) curve_ed25519.ElementO {
+
+	res, _ := api.Compiler().NewHint(SHA2_512_MODORD_HINT, 2, inputs[:]...)
+	return curve_ed25519.ElementO{V: [2]frontend.Variable{res[0], res[1]}}
 }

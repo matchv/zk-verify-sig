@@ -81,3 +81,67 @@ func TestDivQ(t *testing.T) {
 		}, ecc.BN254.ScalarField()))
 	}
 }
+
+type CircuitAddQ struct { // Test A / Q = A
+	A   ElementQ
+	B   ElementQ
+	Sum ElementQ
+}
+
+func (circuit *CircuitAddQ) Define(api frontend.API) error {
+	Sum := AddElementQ(circuit.A, circuit.B, api)
+	AssertEqualElementQ(Sum, circuit.Sum, api)
+	return nil
+}
+
+func TestAddQ(t *testing.T) {
+	for nt := 0; nt < 100; nt++ {
+		A0, _ := crand.Int(crand.Reader, Q)
+		B0, _ := crand.Int(crand.Reader, Q)
+		A := BigIntToElementQ(A0)
+		B := BigIntToElementQ(B0)
+		S := big.NewInt(0).Add(A0, B0)
+		S = big.NewInt(0).Mod(S, Q)
+		Sum := BigIntToElementQ(S)
+		fmt.Println(A0, " + ", B0, " = ", S)
+		fmt.Println(A, " + ", B, " = ", Sum)
+		assert := test.NewAssert(t)
+		assert.NoError(test.IsSolved(&CircuitAddQ{}, &CircuitAddQ{
+			A:   A,
+			B:   B,
+			Sum: Sum,
+		}, ecc.BN254.ScalarField()))
+	}
+}
+
+type CircuitProdQ struct { // Test A / Q = A
+	A    ElementQ
+	B    ElementQ
+	Prod ElementQ
+}
+
+func (circuit *CircuitProdQ) Define(api frontend.API) error {
+	Prod := ProdElementQ(circuit.A, circuit.B, api)
+	AssertEqualElementQ(Prod, circuit.Prod, api)
+	return nil
+}
+
+func TestProdQ(t *testing.T) {
+	for nt := 0; nt < 100; nt++ {
+		A0, _ := crand.Int(crand.Reader, Q)
+		B0, _ := crand.Int(crand.Reader, Q)
+		A := BigIntToElementQ(A0)
+		B := BigIntToElementQ(B0)
+		P := big.NewInt(0).Mul(A0, B0)
+		P = big.NewInt(0).Mod(P, Q)
+		Prod := BigIntToElementQ(P)
+		fmt.Println(A0, " * ", B0, " = ", P)
+		fmt.Println(A, " * ", B, " = ", Prod)
+		assert := test.NewAssert(t)
+		assert.NoError(test.IsSolved(&CircuitProdQ{}, &CircuitProdQ{
+			A:    A,
+			B:    B,
+			Prod: Prod,
+		}, ecc.BN254.ScalarField()))
+	}
+}

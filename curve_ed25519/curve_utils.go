@@ -25,13 +25,16 @@ func init() {
 	BU.Set(big.NewInt(9))
 	BV.SetString("20ae19a1b8a086b4e01edd2c7748d14c923d4d7e6d7c61b229e9c5a27eced3d9", 16)
 
-	BX.SetString("15112221349535400772501151409588531511454012693041857206046113283949847762202", 10)
+	BX.SetString(BXC, 10)
+	BY.SetString(BYC, 10)
+
+	/*BX.SetString("15112221349535400772501151409588531511454012693041857206046113283949847762202", 10)
 	//BX.Mul(BU, big.NewInt(0).ModInverse(BV, Q))
 	BY.Mul(big.NewInt(1).Add(big.NewInt(-1), BU),
 		big.NewInt(0).ModInverse(big.NewInt(0).Add(big.NewInt(1), BU), Q))
 
 	BX.Mod(BX, Q)
-	BY.Mod(BY, Q)
+	BY.Mod(BY, Q)*/
 	BASE = Point{BX, BY}
 }
 func IntToPoint(x *big.Int) Point {

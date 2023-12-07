@@ -4,39 +4,46 @@ import (
 	"ed25519/curve_ed25519"
 
 	"github.com/consensys/gnark/frontend"
-	"github.com/consensys/gnark/std/hash/sha3"
 	"github.com/consensys/gnark/std/math/uints"
 )
 
+// / Signature : R.X, R.Y, S
 type Circuit16 struct {
-	R   [16]curve_ed25519.PointCircuit `gnark:",public"`
-	S   [16]curve_ed25519.ElementO     `gnark:",public"`
-	A   [16]curve_ed25519.PointCircuit `gnark:",public"`
-	Msg [16][MLAR]uints.U8             `gnark:",public"`
+	//R   [NVAL]curve_ed25519.PointCircuit16`gnark:",public"`
+	Rc [16][32]uints.U8           `gnark:",public"`
+	S  [16]curve_ed25519.ElementO `gnark:",public"`
+	//A   [NVAL]curve_ed25519.PointCircuit16`gnark:",public"`
+	Ac  [16][32]uints.U8   `gnark:",public"`
+	Msg [16][MLAR]uints.U8 `gnark:",public"`
+	//Msg [NVAL]curve_ed25519.ElementF     `gnark:",public"`
 }
 
 func (circuit *Circuit16) Define(api frontend.API) error {
 
+	//	api.Println("CURVE Q ", curve_ed25519.Q)
 	for i := 0; i < 16; i++ {
 
-		curve_ed25519.OnCurveCircuit(circuit.R[i], api)
-		curve_ed25519.OnCurveCircuit(circuit.A[i], api)
-
 		uapi, _ := uints.New[uints.U64](api)
-		sha512, _ := sha3.New512(api)
-		sha512.Write(curve_ed25519.ElementToUint8Q(circuit.R[i].X, api, uapi))
-		sha512.Write(curve_ed25519.ElementToUint8Q(circuit.R[i].Y, api, uapi))
-		sha512.Write(curve_ed25519.ElementToUint8Q(circuit.A[i].X, api, uapi))
-		sha512.Write(curve_ed25519.ElementToUint8Q(circuit.A[i].Y, api, uapi))
-		sha512.Write(circuit.Msg[i][:])
+		R := curve_ed25519.CompressToPointCircuit(circuit.Rc[i][:], api, uapi)
+		A := curve_ed25519.CompressToPointCircuit(circuit.Ac[i][:], api, uapi)
 
-		temp := sha512.Sum()
-		k := curve_ed25519.HashToValueO(uapi, api, temp)
+		curve_ed25519.OnCurveCircuit(R, api)
+		curve_ed25519.OnCurveCircuit(A, api)
+
+		var inputs [64 + MLAR]frontend.Variable
+		for j := 0; j < 32; j++ {
+			inputs[j] = circuit.Rc[i][j].Val
+			inputs[j+32] = circuit.Ac[i][j].Val
+		}
+		for j := 0; j < MLAR; j++ {
+			inputs[j+64] = circuit.Msg[i][j].Val
+		}
+		k := SHA2_512_MODORD(api, inputs[:])
 
 		B := curve_ed25519.MulByScalarCircuitWithPows(curve_ed25519.GetBaseCircuit(), circuit.S[i], curve_ed25519.GetBaseCircuitPows(), api)
 
-		A := curve_ed25519.MulByScalarCircuit(circuit.A[i], curve_ed25519.ProdElementO(k, curve_ed25519.StringToElementO("8"), api), api)
-		R := circuit.R[i]
+		A = curve_ed25519.MulByScalarCircuit(A, curve_ed25519.ProdElementO(k, curve_ed25519.StringToElementO("8"), api), api)
+
 		for j := 0; j < 3; j++ {
 			R = curve_ed25519.AddCircuit(R, R, api)
 			B = curve_ed25519.AddCircuit(B, B, api)
@@ -54,42 +61,40 @@ func NewCircuit16() *Circuit16 {
 	return new(Circuit16)
 }
 
-// Getter para el parámetro R
-func (circuit *Circuit16) GetR() []curve_ed25519.PointCircuit {
-	return circuit.R[:]
+func (circuit *Circuit16) GetR() [][32]uints.U8 {
+	return circuit.Rc[:]
 }
 
-// Setter para el parámetro R
-func (circuit *Circuit16) SetR(values []curve_ed25519.PointCircuit) {
-	copy(circuit.R[:], values)
+func (circuit *Circuit16) SetR(value [][32]uints.U8) {
+	copy(circuit.Rc[:], value)
 }
 
-// Getter para el parámetro S
 func (circuit *Circuit16) GetS() []curve_ed25519.ElementO {
 	return circuit.S[:]
 }
 
-// Setter para el parámetro S
-func (circuit *Circuit16) SetS(values []curve_ed25519.ElementO) {
-	copy(circuit.S[:], values)
+func (circuit *Circuit16) SetS(value []curve_ed25519.ElementO) {
+	copy(circuit.S[:], value)
 }
 
-// Getter para el parámetro A
-func (circuit *Circuit16) GetA() []curve_ed25519.PointCircuit {
-	return circuit.A[:]
+func (circuit *Circuit16) GetA() [][32]uints.U8 {
+	return circuit.Ac[:]
 }
 
-// Setter para el parámetro A
-func (circuit *Circuit16) SetA(values []curve_ed25519.PointCircuit) {
-	copy(circuit.A[:], values)
+func (circuit *Circuit16) SetA(value [][32]uints.U8) {
+	copy(circuit.Ac[:], value)
 }
 
-// Getter para el parámetro Msg
 func (circuit *Circuit16) GetMsg() [][MLAR]uints.U8 {
-	return circuit.Msg[:]
+	msg := make([][MLAR]uints.U8, NVAL)
+	for i := 0; i < NVAL; i++ {
+		msg[i] = circuit.Msg[i]
+	}
+	return msg
 }
 
-// Setter para el parámetro Msg
-func (circuit *Circuit16) SetMsg(values [][MLAR]uints.U8) {
-	copy(circuit.Msg[:], values)
+func (circuit *Circuit16) SetMsg(value [][MLAR]uints.U8) {
+	for i := 0; i < NVAL; i++ {
+		copy(circuit.Msg[i][:], value[i][:])
+	}
 }

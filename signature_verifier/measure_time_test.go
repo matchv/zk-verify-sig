@@ -76,7 +76,7 @@ func Timer[C Interface](t *testing.T, name string, New func() C) string {
 func TestTime(t *testing.T) {
 	out := ""
 	out = out + Timer[*Circuit](t, "NVAL = 1", BuildRandom[*Circuit](NewCircuit))
-	// out = out + Timer[*Circuit16](t, "NVAL = 16", BuildRandom[*Circuit16](NewCircuit16))
+	out = out + Timer[*Circuit16](t, "NVAL = 16", BuildRandom[*Circuit16](NewCircuit16))
 	// out = out + Timer[*Circuit32](t, "NVAL = 32", BuildRandom[*Circuit32](NewCircuit32))
 	// out = out + Timer[*Circuit48](t, "NVAL = 48", BuildRandom[*Circuit48](NewCircuit48))
 	// out = out + Timer[*Circuit64](t, "NVAL = 64", BuildRandom[*Circuit64](NewCircuit64))

@@ -7,11 +7,13 @@ import (
 
 	//"github.com/rs/zerolog"
 
+	"fmt"
 	"math/big"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/test"
+	"github.com/stretchr/testify/assert"
 
 	//"github.com/consensys/gnark/std/algebra/fields_bls12377"
 	crand "crypto/rand"
@@ -187,6 +189,56 @@ func TestCriticProduct(t *testing.T) {
 			K:   BigIntToElementO(k),
 			S:   BigIntToElementO(S),
 			RES: PointToCircuit(MyRes),
+		}, ecc.BN254.ScalarField()))
+	}
+}
+
+type CircuitOnCurve struct {
+	A PointCircuit `gnark:",public"`
+}
+
+func (circuit *CircuitOnCurve) Define(api frontend.API) error {
+	OnCurveCircuit(circuit.A, api)
+	return nil
+}
+
+func TestOnCurveCircuit(t *testing.T) {
+	for nt := 0; nt < 100; nt++ {
+		s, _ := crand.Int(crand.Reader, Ord)
+		A := MulByScalar(BASE, s)
+		assert.True(t, OnCurve(A.X, A.Y))
+		assert := test.NewAssert(t)
+		assert.NoError(test.IsSolved(&CircuitOnCurve{}, &CircuitOnCurve{
+			A: PointToCircuit(A),
+		}, ecc.BN254.ScalarField()))
+	}
+}
+
+type CircuitCompressForm struct {
+	A  PointCircuit `gnark:",public"`
+	CA [32]uints.U8 `gnark:",public"`
+}
+
+func (circuit *CircuitCompressForm) Define(api frontend.API) error {
+	OnCurveCircuit(circuit.A, api)
+	uapi, _ := uints.New[uints.U64](api)
+	CA := CompressToPointCircuit(circuit.CA[:], api, uapi)
+	AssertEqualElementQ(CA.X, circuit.A.X, api)
+	AssertEqualElementQ(CA.Y, circuit.A.Y, api)
+	return nil
+}
+
+func TestCompressFormCircuit(t *testing.T) {
+	for nt := 0; nt < 10; nt++ {
+		s, _ := crand.Int(crand.Reader, Ord)
+		A := MulByScalar(BASE, s)
+		fmt.Println(A)
+		assert.True(t, OnCurve(A.X, A.Y))
+
+		assert := test.NewAssert(t)
+		assert.NoError(test.IsSolved(&CircuitCompressForm{}, &CircuitCompressForm{
+			A:  PointToCircuit(A),
+			CA: [32]uints.U8(A.CompressFormCircuit()),
 		}, ecc.BN254.ScalarField()))
 	}
 }
