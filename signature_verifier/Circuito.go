@@ -19,6 +19,7 @@ type Circuit struct {
 	Ac  [NVAL][32]uints.U8   `gnark:",public"`
 	Msg [NVAL][MLAR]uints.U8 `gnark:",public"`
 	//Msg [NVAL]curve_ed25519.ElementF     `gnark:",public"`
+	H [32]uints.U8 `gnark:",public"`
 }
 
 func Get(uapi *uints.BinaryField[uints.U64], X frontend.Variable) []uints.U8 {
@@ -28,85 +29,7 @@ func Get(uapi *uints.BinaryField[uints.U64], X frontend.Variable) []uints.U8 {
 // 5f51e65e475f794b1fe122d388b72eb36dc2b28192839e4dd6163a5d81312c14
 
 func (circuit *Circuit) Define(api frontend.API) error {
-
-	//	api.Println("CURVE Q ", curve_ed25519.Q)
-	for i := 0; i < NVAL; i++ {
-
-		uapi, _ := uints.New[uints.U64](api)
-		R := curve_ed25519.CompressToPointCircuit(circuit.Rc[i][:], api, uapi)
-		A := curve_ed25519.CompressToPointCircuit(circuit.Ac[i][:], api, uapi)
-
-		//curve_ed25519.AssertIsOnCurve(circuit.R[i])
-		//curve_ed25519.AssertIsOnCurve(circuit.A[i])
-
-		//api.AssertIsLessOrEqual(circuit.S[i], params.Order)
-		//api.AssertIsDifferent(circuit.S[i], params.Order)
-
-		//sha512, _ := sha3.New512(api)
-
-		//sha512.Write(curve_ed25519.ElementToUint8Q(circuit.R[i].X, api, uapi))
-		//sha512.Write(curve_ed25519.ElementToUint8Q(circuit.R[i].Y, api, uapi))
-		//sha512.Write(curve_ed25519.ElementToUint8Q(circuit.A[i].X, api, uapi))
-		//sha512.Write(curve_ed25519.ElementToUint8Q(circuit.A[i].Y, api, uapi))
-		//sha512.Write(circuit.Rc[i][:])
-		//sha512.Write(circuit.Ac[i][:])
-		//sha512.Write(circuit.Msg[i][:])
-		//sha512.Write(curve_ed25519.ElementToUint8F(circuit.Msg[i], api, uapi))
-
-		//temp := sha512.Sum()
-		/*for j := 0; j < len(temp); j++ {
-			api.Println(temp[j].Val, " ")
-		}*/
-		//k := curve_ed25519.HashToValueO(uapi, api, temp) //uapi.ToValue(uapi.PackMSB(sha256.Sum()...))
-		var inputs [64 + MLAR]frontend.Variable
-		for j := 0; j < 32; j++ {
-			inputs[j] = circuit.Rc[i][j].Val
-			inputs[j+32] = circuit.Ac[i][j].Val
-		}
-		for j := 0; j < MLAR; j++ {
-			inputs[j+64] = circuit.Msg[i][j].Val
-		}
-		k := SHA2_512_MODORD(api, inputs[:])
-
-		/*api.Println("K ", k.V[0], " ", k.V[1])
-		api.Println("On circuit")
-		api.Println("AX ", circuit.A[i].X.V[0], " ", circuit.A[i].X.V[1])
-		api.Println("AY ", circuit.A[i].Y.V[0], " ", circuit.A[i].Y.V[1])
-		api.Println("RX ", circuit.R[i].X.V[0], " ", circuit.R[i].X.V[1])
-		api.Println("RY ", circuit.R[i].Y.V[0], " ", circuit.R[i].Y.V[1])*/
-
-		B := curve_ed25519.MulByScalarCircuitWithPows(curve_ed25519.GetBaseCircuit(), circuit.S[i], curve_ed25519.GetBaseCircuitPows(), api)
-		//B := curve_ed25519.MulByScalarCircuit(curve_ed25519.GetBaseCircuit(), curve_ed25519.ProdElementO(circuit.S[i], curve_ed25519.StringToElementO("8"), api), api)
-		//B = curve_ed25519.MulByScalarCircuit(B, curve_ed25519.StringToElementO("8"), api)
-		//B = curve_ed25519.MulByScalarCircuit(B, circuit.S[i], api)
-		//B = curve_ed25519.ScalarMul(B, api.Mul(k, frontend.Variable(8)))
-
-		A = curve_ed25519.MulByScalarCircuit(A, curve_ed25519.ProdElementO(k, curve_ed25519.StringToElementO("8"), api), api)
-		//A = curve_ed25519.MulByScalarCircuit(A, curve_ed25519.StringToElementO("8"), api)
-
-		for j := 0; j < 3; j++ {
-			R = curve_ed25519.AddCircuit(R, R, api)
-			B = curve_ed25519.AddCircuit(B, B, api)
-		}
-		A = curve_ed25519.AddCircuit(A, R, api)
-		/*A := curve_ed25519.AddCircuit(
-			curve_ed25519.MulByScalarCircuit(circuit.R[i], curve_ed25519.StringToElement("8"), api),
-			curve_ed25519.MulByScalarCircuit(circuit.A[i], curve_ed25519.ProdElement(k, curve_ed25519.StringToElement("8"), api), api), api)
-		//A := curve_ed25519.Add(curve_ed25519.ScalarMul(circuit.R[i], frontend.Variable(8)),
-		//	curve_ed25519.ScalarMul(circuit.A[i], api.Mul(k, frontend.Variable(8))))*/
-
-		/*api.Println("DERX", A.X.V[0], " ", A.X.V[1])
-		api.Println("DERY", A.Y.V[0], " ", A.Y.V[1])
-
-		api.Println("BX ", B.X.V[0], " ", B.X.V[1])
-		api.Println("BY ", B.Y.V[0], " ", B.Y.V[1])*/
-
-		curve_ed25519.AssertEqualElementQ(A.X, B.X, api)
-		curve_ed25519.AssertEqualElementQ(A.Y, B.Y, api)
-		//api.AssertIsEqual(A.X, B.X)
-		//api.AssertIsEqual(A.Y, B.Y)
-	}
-	return nil
+	return Define(circuit, api)
 }
 
 func NewCircuit() *Circuit {
@@ -149,4 +72,14 @@ func (circuit *Circuit) SetMsg(value [][MLAR]uints.U8) {
 	for i := 0; i < NVAL; i++ {
 		copy(circuit.Msg[i][:], value[i][:])
 	}
+}
+
+func (circuit *Circuit) GetH() [32]uints.U8 {
+	var h [32]uints.U8
+	copy(h[:], circuit.H[:])
+	return h
+}
+
+func (circuit *Circuit) SetH(value [32]uints.U8) {
+	copy(circuit.H[:], value[:])
 }

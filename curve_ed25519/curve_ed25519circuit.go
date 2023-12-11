@@ -112,7 +112,7 @@ func HashToValueQ(uapi *uints.BinaryField[uints.U64], api frontend.API, hash []u
 	return res
 }
 
-func HashToValueO(uapi *uints.BinaryField[uints.U64], api frontend.API, hash []uints.U8) ElementO {
+func HashToValueO(api frontend.API, hash []uints.U8) ElementO {
 	res := StringToElementO("0")
 	//	api.Println("RES 0 : ", res.V[0], " ", res.V[1])
 	for i := len(hash) - 1; i >= 0; i-- {
@@ -126,7 +126,7 @@ func HashToValueO(uapi *uints.BinaryField[uints.U64], api frontend.API, hash []u
 	return res
 }
 
-func HashToValue(uapi *uints.BinaryField[uints.U64], api frontend.API, hash []uints.U8, mod string) Element {
+func HashToValue(api frontend.API, hash []uints.U8, mod string) Element {
 	res := StringToElement("0", mod)
 	//	api.Println("RES 0 : ", res.V[0], " ", res.V[1])
 	for i := len(hash) - 1; i >= 0; i-- {

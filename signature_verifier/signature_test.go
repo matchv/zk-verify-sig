@@ -173,3 +173,25 @@ func TestSignatureCoincidence(t *testing.T) {
 
 	}
 }
+
+func TestBachSignatureCoincidence(t *testing.T) {
+	const nval = 100
+	sk := make([][]byte, nval)
+	msg := make([][MLAR]byte, nval)
+
+	for nv := 0; nv < nval; nv++ {
+		sk[nv] = make([]byte, 32)
+		crand.Read(sk[nv][:])
+		crand.Read(msg[nv][:])
+	}
+
+	sig, pk := BatchSign(msg[:], sk)
+	sig2, pk2 := BatchSignCompress(msg[:], sk)
+
+	R, S, A := BatchInputFromBytes(pk[:], sig[:])
+	R2, S2, A2 := BatchCompressToInput(sig2[:], pk2[:])
+	assert.Equal(t, R, R2)
+	assert.Equal(t, S, S2)
+	assert.Equal(t, A, A2)
+
+}

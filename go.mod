@@ -2,10 +2,9 @@ module ed25519
 
 go 1.20
 
-require (
-	github.com/consensys/gnark v0.9.1
-	github.com/consensys/gnark-crypto v0.12.2-0.20231013160410-1f65e75b6dfb
-)
+require github.com/consensys/gnark-crypto v0.12.2-0.20231208203441-d4eab6ddd2af
+
+require github.com/consensys/gnark v0.9.2-0.20231211160120-056a6bcad4c5 // indirect
 
 require (
 	github.com/bits-and-blooms/bitset v1.8.0 // indirect

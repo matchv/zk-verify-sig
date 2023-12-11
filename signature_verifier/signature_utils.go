@@ -8,6 +8,7 @@ import (
 
 	"github.com/consensys/gnark/constraint/solver"
 	"github.com/consensys/gnark/frontend"
+	"github.com/consensys/gnark/std/math/uints"
 	//csha3 "golang.org/x/crypto/sha2"
 )
 
@@ -232,6 +233,7 @@ func BatchSignCompress(msg [][MLAR]byte, sk [][]byte) (signature [][]byte, pk []
 
 func init() {
 	solver.RegisterHint(SHA2_512_MODORD_HINT)
+	solver.RegisterHint(SHA2_512_HINT)
 }
 
 func SHA2_512_MODORD_HINT(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
@@ -253,4 +255,27 @@ func SHA2_512_MODORD(api frontend.API, inputs []frontend.Variable) curve_ed25519
 
 	res, _ := api.Compiler().NewHint(SHA2_512_MODORD_HINT, 2, inputs[:]...)
 	return curve_ed25519.ElementO{V: [2]frontend.Variable{res[0], res[1]}}
+}
+
+func SHA2_512_HINT(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
+	sha512 := csha2.New()
+	in := make([]byte, len(inputs))
+	for i := 0; i < len(inputs); i++ {
+		in[i] = byte(inputs[i].Uint64())
+	}
+	sha512.Write(in)
+	temp := sha512.Sum(nil)
+	for i := 0; i < 64; i++ {
+		result[i] = big.NewInt(0).SetUint64(uint64(temp[i]))
+	}
+	return nil
+}
+
+func SHA2_512(uapi *uints.BinaryField[uints.U64], api frontend.API, inputs []frontend.Variable) [64]uints.U8 {
+	temp, _ := api.Compiler().NewHint(SHA2_512_HINT, 64, inputs[:]...)
+	var res [64]uints.U8
+	for i := 0; i < 64; i++ {
+		res[i] = uapi.ByteValueOf(temp[i])
+	}
+	return res
 }

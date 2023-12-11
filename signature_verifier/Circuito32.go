@@ -16,45 +16,11 @@ type Circuit32 struct {
 	Ac  [32][32]uints.U8   `gnark:",public"`
 	Msg [32][MLAR]uints.U8 `gnark:",public"`
 	//Msg [NVAL]curve_ed25519.ElementF     `gnark:",public"`
+	H [32]uints.U8 `gnark:",public"`
 }
 
 func (circuit *Circuit32) Define(api frontend.API) error {
-
-	//	api.Println("CURVE Q ", curve_ed25519.Q)
-	for i := 0; i < 32; i++ {
-
-		uapi, _ := uints.New[uints.U64](api)
-		R := curve_ed25519.CompressToPointCircuit(circuit.Rc[i][:], api, uapi)
-		A := curve_ed25519.CompressToPointCircuit(circuit.Ac[i][:], api, uapi)
-
-		curve_ed25519.OnCurveCircuit(R, api)
-		curve_ed25519.OnCurveCircuit(A, api)
-
-		var inputs [64 + MLAR]frontend.Variable
-		for j := 0; j < 32; j++ {
-			inputs[j] = circuit.Rc[i][j].Val
-			inputs[j+32] = circuit.Ac[i][j].Val
-		}
-		for j := 0; j < MLAR; j++ {
-			inputs[j+64] = circuit.Msg[i][j].Val
-		}
-		k := SHA2_512_MODORD(api, inputs[:])
-
-		B := curve_ed25519.MulByScalarCircuitWithPows(curve_ed25519.GetBaseCircuit(), circuit.S[i], curve_ed25519.GetBaseCircuitPows(), api)
-
-		A = curve_ed25519.MulByScalarCircuit(A, curve_ed25519.ProdElementO(k, curve_ed25519.StringToElementO("8"), api), api)
-
-		for j := 0; j < 3; j++ {
-			R = curve_ed25519.AddCircuit(R, R, api)
-			B = curve_ed25519.AddCircuit(B, B, api)
-		}
-		A = curve_ed25519.AddCircuit(A, R, api)
-
-		curve_ed25519.AssertEqualElementQ(A.X, B.X, api)
-		curve_ed25519.AssertEqualElementQ(A.Y, B.Y, api)
-
-	}
-	return nil
+	return Define(circuit, api)
 }
 
 func NewCircuit32() *Circuit32 {
@@ -86,15 +52,25 @@ func (circuit *Circuit32) SetA(value [][32]uints.U8) {
 }
 
 func (circuit *Circuit32) GetMsg() [][MLAR]uints.U8 {
-	msg := make([][MLAR]uints.U8, NVAL)
-	for i := 0; i < NVAL; i++ {
+	msg := make([][MLAR]uints.U8, 32)
+	for i := 0; i < 32; i++ {
 		msg[i] = circuit.Msg[i]
 	}
 	return msg
 }
 
 func (circuit *Circuit32) SetMsg(value [][MLAR]uints.U8) {
-	for i := 0; i < NVAL; i++ {
+	for i := 0; i < 32; i++ {
 		copy(circuit.Msg[i][:], value[i][:])
 	}
+}
+
+func (circuit *Circuit32) GetH() [32]uints.U8 {
+	var h [32]uints.U8
+	copy(h[:], circuit.H[:])
+	return h
+}
+
+func (circuit *Circuit32) SetH(value [32]uints.U8) {
+	copy(circuit.H[:], value[:])
 }

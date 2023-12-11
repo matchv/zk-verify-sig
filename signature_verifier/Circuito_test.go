@@ -41,8 +41,8 @@ func TestRandomAC(t *testing.T) {
 	RandomAC[*Circuit](t, NT, BuildRandom[*Circuit](NewCircuit))
 	RandomAC[*Circuit16](t, NT, BuildRandom[*Circuit16](NewCircuit16))
 	RandomAC[*Circuit32](t, NT, BuildRandom[*Circuit32](NewCircuit32))
-	//	RandomAC[*Circuit48](t, NT, BuildRandom[*Circuit48](NewCircuit48))
-	//	RandomAC[*Circuit64](t, NT, BuildRandom[*Circuit64](NewCircuit64))
+	RandomAC[*Circuit48](t, NT, BuildRandom[*Circuit48](NewCircuit48))
+	RandomAC[*Circuit64](t, NT, BuildRandom[*Circuit64](NewCircuit64))
 }
 
 func ShiftSWA[C Interface](t *testing.T, NT int, random func() C) {
