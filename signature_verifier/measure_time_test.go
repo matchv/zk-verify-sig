@@ -80,10 +80,10 @@ func TimerGrooth16[C Interface](t *testing.T, name string, New func() C) string 
 func TestTimeGrooth16(t *testing.T) {
 	out := ""
 	out = out + TimerGrooth16[*Circuit](t, "NVAL = 1", BuildRandom[*Circuit](NewCircuit))
-	//out = out + TimerGrooth16[*Circuit16](t, "NVAL = 16", BuildRandom[*Circuit16](NewCircuit16))
-	// out = out + TimerGrooth16[*Circuit32](t, "NVAL = 32", BuildRandom[*Circuit32](NewCircuit32))
-	// out = out + TimerGrooth16[*Circuit48](t, "NVAL = 48", BuildRandom[*Circuit48](NewCircuit48))
-	// out = out + TimerGrooth16[*Circuit64](t, "NVAL = 64", BuildRandom[*Circuit64](NewCircuit64))
+	out = out + TimerGrooth16[*Circuit16](t, "NVAL = 16", BuildRandom[*Circuit16](NewCircuit16))
+	out = out + TimerGrooth16[*Circuit32](t, "NVAL = 32", BuildRandom[*Circuit32](NewCircuit32))
+	out = out + TimerGrooth16[*Circuit48](t, "NVAL = 48", BuildRandom[*Circuit48](NewCircuit48))
+	out = out + TimerGrooth16[*Circuit64](t, "NVAL = 64", BuildRandom[*Circuit64](NewCircuit64))
 
 	fmt.Println(out)
 }
@@ -132,10 +132,10 @@ func TimerPlonK[C Interface](t *testing.T, name string, New func() C) string {
 func TestTimePlonK(t *testing.T) {
 	out := ""
 	out = out + TimerPlonK[*Circuit](t, "NVAL = 1", BuildRandom[*Circuit](NewCircuit))
-	//out = out + TimerPlonK[*Circuit16](t, "NVAL = 16", BuildRandom[*Circuit16](NewCircuit16))
-	// out = out + TimerPlonK[*Circuit32](t, "NVAL = 32", BuildRandom[*Circuit32](NewCircuit32))
-	// out = out + TimerPlonK[*Circuit48](t, "NVAL = 48", BuildRandom[*Circuit48](NewCircuit48))
-	// out = out + TimerPlonK[*Circuit64](t, "NVAL = 64", BuildRandom[*Circuit64](NewCircuit64))
+	out = out + TimerPlonK[*Circuit16](t, "NVAL = 16", BuildRandom[*Circuit16](NewCircuit16))
+	out = out + TimerPlonK[*Circuit32](t, "NVAL = 32", BuildRandom[*Circuit32](NewCircuit32))
+	out = out + TimerPlonK[*Circuit48](t, "NVAL = 48", BuildRandom[*Circuit48](NewCircuit48))
+	out = out + TimerPlonK[*Circuit64](t, "NVAL = 64", BuildRandom[*Circuit64](NewCircuit64))
 
 	fmt.Println(out)
 }
