@@ -13,18 +13,23 @@ import (
 	"github.com/consensys/gnark/std/math/uints"
 )
 
+const MLAR = 115 /// d(nbConstrains)/d(MLAR) aprox 5.000
+const HSIZE = 2  /// 32 bytes hash as little endian integers
+
 type Interface interface {
 	Define(api frontend.API) error
 	GetR() [][32]uints.U8
 	SetR(value [][32]uints.U8)
-	GetS() []curve_ed25519.ElementO
-	SetS(value []curve_ed25519.ElementO)
+	GetS() [][32]uints.U8
+	SetS(value [][32]uints.U8)
 	GetA() [][32]uints.U8
 	SetA(value [][32]uints.U8)
 	GetMsg() [][MLAR]uints.U8
 	SetMsg(value [][MLAR]uints.U8)
-	GetH() [32]uints.U8
-	SetH(value [32]uints.U8)
+	GetH() [][64]uints.U8
+	SetH(value [][64]uints.U8)
+	GetHmain() [HSIZE]frontend.Variable
+	SetHmain(value [HSIZE]frontend.Variable)
 }
 
 func BuildRandom[C Interface](nuevo func() C) func() C {
@@ -54,8 +59,8 @@ func InputToCircuit(circuit Interface, R []curve_ed25519.Point, S []*big.Int, A 
 	tMsg := make([][MLAR]uints.U8, nval)
 	tA := make([][32]uints.U8, nval)
 	tR := make([][32]uints.U8, nval)
-	tS := make([]curve_ed25519.ElementO, nval)
-	tH := [32]uints.U8{}
+	tS := make([][32]uints.U8, nval)
+	tH := make([][64]uints.U8, nval)
 	for nv := 0; nv < nval; nv++ {
 		Sha512 := csha512.New()
 		for i := 0; i < MLAR; i++ {
@@ -63,48 +68,49 @@ func InputToCircuit(circuit Interface, R []curve_ed25519.Point, S []*big.Int, A 
 		}
 		tA[nv] = [32]uints.U8(A[nv].CompressFormCircuit())
 		tR[nv] = [32]uints.U8(R[nv].CompressFormCircuit())
-		tS[nv] = curve_ed25519.BigIntToElementO(S[nv])
+		tS[nv] = [32]uints.U8(BigIntToUint8(S[nv]))
 		Sha512.Write(R[nv].CompressForm())
 		Sha512.Write(A[nv].CompressForm())
 		Sha512.Write(msg[nv][:])
 		tempH := Sha512.Sum(nil)
+		for i := 0; i < 64; i++ {
+			tH[nv][i] = uints.NewU8(tempH[i])
+		}
+		Sha256.Write(R[nv].CompressForm())
+		Sha256.Write(InvertArray(S[nv].FillBytes(make([]byte, 32))))
+		Sha256.Write(A[nv].CompressForm())
+		Sha256.Write(msg[nv][:])
 		Sha256.Write(tempH)
 	}
-	H := Sha256.Sum(nil)
-	for i := 0; i < 32; i++ {
-		tH[i] = uints.NewU8(H[i])
-	}
+	Hmain := InvertArray(Sha256.Sum(nil))
+	var tHmain [HSIZE]frontend.Variable
 
+	for i := 0; i < HSIZE; i++ {
+		tHmain[HSIZE-1-i] = frontend.Variable(big.NewInt(0).SetBytes(Hmain[(i * 16):((i + 1) * 16)]))
+	}
 	circuit.SetR(tR)
 	circuit.SetS(tS)
 	circuit.SetA(tA)
 	circuit.SetMsg(tMsg)
 	circuit.SetH(tH)
+	circuit.SetHmain(tHmain)
 	return circuit
 }
 
 func Define(circuit Interface, api frontend.API) error {
 	Rc := circuit.GetR()
 	Ac := circuit.GetA()
-	S := circuit.GetS()
+	Sc := circuit.GetS()
+	Hc := circuit.GetH()
 	Msg := circuit.GetMsg()
 	Sha2_256, _ := sha2.New(api)
 	uapi, _ := uints.New[uints.U64](api)
 	for i := 0; i < len(Rc); i++ {
 		R := curve_ed25519.CompressToPointCircuit(Rc[i][:], api, uapi)
 		A := curve_ed25519.CompressToPointCircuit(Ac[i][:], api, uapi)
-		var inputs [64 + MLAR]frontend.Variable
-		for j := 0; j < 32; j++ {
-			inputs[j] = Rc[i][j].Val
-			inputs[j+32] = Ac[i][j].Val
-		}
-		for j := 0; j < MLAR; j++ {
-			inputs[j+64] = Msg[i][j].Val
-		}
-		temp := SHA2_512(uapi, api, inputs[:])
-		Sha2_256.Write(temp[:])
-		k := curve_ed25519.HashToValueO(api, temp[:])
-		B := curve_ed25519.MulByScalarCircuitWithPows(curve_ed25519.GetBaseCircuit(), S[i], curve_ed25519.GetBaseCircuitPows(), api)
+		k := curve_ed25519.HashToValueO(api, Hc[i][:])
+		S := curve_ed25519.UnsafeByteToElement[curve_ed25519.ElementO](Sc[i][:], curve_ed25519.NewElementO, api)
+		B := curve_ed25519.MulByScalarCircuitWithPows(curve_ed25519.GetBaseCircuit(), S, curve_ed25519.GetBaseCircuitPows(), api)
 		A = curve_ed25519.MulByScalarCircuit(A, curve_ed25519.ProdElementO(k, curve_ed25519.StringToElementO("8"), api), api)
 		for j := 0; j < 3; j++ {
 			R = curve_ed25519.AddCircuit(R, R, api)
@@ -113,12 +119,27 @@ func Define(circuit Interface, api frontend.API) error {
 		A = curve_ed25519.AddCircuit(A, R, api)
 		curve_ed25519.AssertEqualElementQ(A.X, B.X, api)
 		curve_ed25519.AssertEqualElementQ(A.Y, B.Y, api)
+
+		Sha2_256.Write(Rc[i][:])
+		Sha2_256.Write(Sc[i][:])
+		Sha2_256.Write(Ac[i][:])
+		Sha2_256.Write(Msg[i][:])
+		Sha2_256.Write(Hc[i][:])
 	}
 
-	H := circuit.GetH()
+	Hmain := circuit.GetHmain()
 	Hloc := Sha2_256.Sum()
-	for i := 0; i < 32; i++ {
-		uapi.ByteAssertEq(H[i], Hloc[i])
+	var Hval [HSIZE]frontend.Variable
+	for i := 0; i < HSIZE; i++ {
+		Hval[i] = frontend.Variable(0)
+	}
+	for i := 15; i >= 0; i-- {
+		for j := 0; j < HSIZE; j++ {
+			Hval[j] = api.Add(api.Mul(Hval[j], frontend.Variable(256)), Hloc[i+j*16].Val)
+		}
+	}
+	for i := 0; i < HSIZE; i++ {
+		api.AssertIsEqual(Hmain[i], Hval[i])
 	}
 	return nil
 }

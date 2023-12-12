@@ -18,15 +18,6 @@ import (
 	//"github.com/consensys/gnark-crypto/ecc/bls12-377/fptower"
 )
 
-/*func TestIntToPoint_1(t *testing.T) {
-	P := curve_ed25519IntToPoint(big.NewInt(1))
-	fmt.Println(curve_ed25519BX.Cmp(fr.Modulus()))
-	fmt.Println(curve_ed25519BY.Cmp(fr.Modulus()))
-	if curve_ed25519OnCurve(P.X, P.Y) == false {
-		t.Errorf("P is not on curve")
-	}
-}*/
-
 func RandomAC[C Interface](t *testing.T, NT int, random func() C) {
 	for i := 0; i < NT; i++ {
 		fmt.Println(i, " / ", NT)
@@ -36,6 +27,7 @@ func RandomAC[C Interface](t *testing.T, NT int, random func() C) {
 	}
 }
 
+// go  test -timeout 0s -run ^TestRandomAC -v
 func TestRandomAC(t *testing.T) {
 	NT := 2
 	RandomAC[*Circuit](t, NT, BuildRandom[*Circuit](NewCircuit))
@@ -60,6 +52,7 @@ func ShiftSWA[C Interface](t *testing.T, NT int, random func() C) {
 	}
 }
 
+// go  test -timeout 0s -run ^TestShiftSWA -v
 func TestShiftSWA(t *testing.T) {
 	NT := 2
 	if NVAL > 1 {
@@ -84,6 +77,7 @@ func SwapARWA[C Interface](t *testing.T, NT int, random func() C) {
 	}
 }
 
+// go  test -timeout 0s -run ^TestSwapARWA -v
 func TestSwapARWA(t *testing.T) {
 	NT := 2
 	SwapARWA(t, NT, BuildRandom[*Circuit](NewCircuit))

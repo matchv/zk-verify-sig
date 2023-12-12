@@ -27,6 +27,10 @@ type ElementQ struct {
 	V [2]frontend.Variable
 }
 
+func NewElementQ(a, b frontend.Variable) ElementQ {
+	return ElementQ{[2]frontend.Variable{a, b}}
+}
+
 func BigIntToElementQ(a *big.Int) ElementQ {
 	a = big.NewInt(0).Mod(a, Q)
 	return ElementQ{[2]frontend.Variable{frontend.Variable(big.NewInt(0).Mod(a, FieldBase)), frontend.Variable(big.NewInt(0).Div(a, FieldBase))}}

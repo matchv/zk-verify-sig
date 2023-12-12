@@ -279,3 +279,13 @@ func SHA2_512(uapi *uints.BinaryField[uints.U64], api frontend.API, inputs []fro
 	}
 	return res
 }
+
+func BigIntToUint8(a *big.Int) []uints.U8 {
+	temp := make([]byte, 32)
+	temp = InvertArray(a.FillBytes(temp))
+	res := make([]uints.U8, 32)
+	for i := 0; i < 32; i++ {
+		res[i] = uints.NewU8(temp[i])
+	}
+	return res
+}

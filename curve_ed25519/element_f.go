@@ -31,6 +31,10 @@ type ElementF struct {
 	V [2]frontend.Variable
 }
 
+func NewElementF(a, b frontend.Variable) ElementF {
+	return ElementF{[2]frontend.Variable{a, b}}
+}
+
 func BigIntToElementF(a *big.Int) ElementF {
 	a = big.NewInt(0).Mod(a, FieldModulus)
 	return ElementF{[2]frontend.Variable{frontend.Variable(big.NewInt(0).Mod(a, FieldBase)), frontend.Variable(big.NewInt(0).Div(a, FieldBase))}}

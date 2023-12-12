@@ -1,25 +1,23 @@
 package signature_verifier
 
 import (
-	"ed25519/curve_ed25519"
-
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/math/uints"
 )
 
 const NVAL = 1
-const MLAR = 115 /// d(nbConstrains)/d(MLAR) aprox 5.000
 
 // / Signature : R.X, R.Y, S
 type Circuit struct {
 	//R   [NVAL]curve_ed25519.PointCircuit `gnark:",public"`
-	Rc [NVAL][32]uints.U8           `gnark:",public"`
-	S  [NVAL]curve_ed25519.ElementO `gnark:",public"`
+	Rc [NVAL][32]uints.U8 `gnark:",secret"`
+	Sc [NVAL][32]uints.U8 `gnark:",secret"`
 	//A   [NVAL]curve_ed25519.PointCircuit `gnark:",public"`
-	Ac  [NVAL][32]uints.U8   `gnark:",public"`
-	Msg [NVAL][MLAR]uints.U8 `gnark:",public"`
+	Ac    [NVAL][32]uints.U8       `gnark:",secret"`
+	Msg   [NVAL][MLAR]uints.U8     `gnark:",secret"`
+	H     [NVAL][64]uints.U8       `gnark:",secret"`
+	Hmain [HSIZE]frontend.Variable `gnark:",public"` /// Sha2_256(Ri,Si,Ai,Mi,Hi,Ri+1,...)
 	//Msg [NVAL]curve_ed25519.ElementF     `gnark:",public"`
-	H [32]uints.U8 `gnark:",public"`
 }
 
 func Get(uapi *uints.BinaryField[uints.U64], X frontend.Variable) []uints.U8 {
@@ -44,12 +42,14 @@ func (circuit *Circuit) SetR(value [][32]uints.U8) {
 	copy(circuit.Rc[:], value)
 }
 
-func (circuit *Circuit) GetS() []curve_ed25519.ElementO {
-	return circuit.S[:]
+func (circuit *Circuit) GetS() [][32]uints.U8 {
+	sc := make([][32]uints.U8, NVAL)
+	copy(sc[:], circuit.Sc[:])
+	return sc
 }
 
-func (circuit *Circuit) SetS(value []curve_ed25519.ElementO) {
-	copy(circuit.S[:], value)
+func (circuit *Circuit) SetS(value [][32]uints.U8) {
+	copy(circuit.Sc[:], value)
 }
 
 func (circuit *Circuit) GetA() [][32]uints.U8 {
@@ -74,12 +74,20 @@ func (circuit *Circuit) SetMsg(value [][MLAR]uints.U8) {
 	}
 }
 
-func (circuit *Circuit) GetH() [32]uints.U8 {
-	var h [32]uints.U8
+func (circuit *Circuit) GetHmain() [HSIZE]frontend.Variable {
+	return circuit.Hmain
+}
+
+func (circuit *Circuit) SetHmain(value [HSIZE]frontend.Variable) {
+	circuit.Hmain = value
+}
+
+func (circuit *Circuit) GetH() [][64]uints.U8 {
+	h := make([][64]uints.U8, NVAL)
 	copy(h[:], circuit.H[:])
 	return h
 }
 
-func (circuit *Circuit) SetH(value [32]uints.U8) {
+func (circuit *Circuit) SetH(value [][64]uints.U8) {
 	copy(circuit.H[:], value[:])
 }

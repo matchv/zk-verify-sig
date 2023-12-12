@@ -27,6 +27,10 @@ type ElementO struct {
 	V [2]frontend.Variable
 }
 
+func NewElementO(a, b frontend.Variable) ElementO {
+	return ElementO{[2]frontend.Variable{a, b}}
+}
+
 func BigIntToElementO(a *big.Int) ElementO {
 	a = big.NewInt(0).Mod(a, Ord)
 	return ElementO{[2]frontend.Variable{frontend.Variable(big.NewInt(0).Mod(a, FieldBase)), frontend.Variable(big.NewInt(0).Div(a, FieldBase))}}

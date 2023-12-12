@@ -3,6 +3,7 @@ package curve_ed25519
 import (
 	fr "github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	td "github.com/consensys/gnark/std/algebra/native/twistededwards"
+	"github.com/consensys/gnark/std/math/uints"
 
 	"math/big"
 
@@ -69,4 +70,14 @@ func ModCircuit(a frontend.Variable, api frontend.API) frontend.Variable {
 	res, _ = api.Compiler().NewHint(HintModulus, 2, a, QC)
 	api.AssertIsEqual(api.Add(api.Mul(res[1], QC), res[0]), a)
 	return res[0]
+}
+
+func UnsafeByteToElement[T ElementF | ElementQ | ElementO](input []uints.U8, New func(a, b frontend.Variable) T, api frontend.API) T {
+	a := frontend.Variable(0)
+	b := frontend.Variable(0)
+	for i := 15; i >= 0; i-- {
+		a = api.Add(api.Mul(a, frontend.Variable(256)), frontend.Variable(input[i].Val))
+		b = api.Add(api.Mul(b, frontend.Variable(256)), frontend.Variable(input[i+16].Val))
+	}
+	return New(a, b)
 }
