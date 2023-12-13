@@ -251,7 +251,7 @@ func SHA2_512_MODORD_HINT(_ *big.Int, inputs []*big.Int, result []*big.Int) erro
 	return nil
 }
 
-func SHA2_512_MODORD(api frontend.API, inputs []frontend.Variable) curve_ed25519.ElementO {
+func SHA2_512_MODORDWithHints(api frontend.API, inputs []frontend.Variable) curve_ed25519.ElementO {
 
 	res, _ := api.Compiler().NewHint(SHA2_512_MODORD_HINT, 2, inputs[:]...)
 	return curve_ed25519.ElementO{V: [2]frontend.Variable{res[0], res[1]}}
@@ -271,7 +271,7 @@ func SHA2_512_HINT(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
 	return nil
 }
 
-func SHA2_512(uapi *uints.BinaryField[uints.U64], api frontend.API, inputs []frontend.Variable) [64]uints.U8 {
+func SHA2_512WithHints(uapi *uints.BinaryField[uints.U64], api frontend.API, inputs []frontend.Variable) [64]uints.U8 {
 	temp, _ := api.Compiler().NewHint(SHA2_512_HINT, 64, inputs[:]...)
 	var res [64]uints.U8
 	for i := 0; i < 64; i++ {
@@ -286,6 +286,36 @@ func BigIntToUint8(a *big.Int) []uints.U8 {
 	res := make([]uints.U8, 32)
 	for i := 0; i < 32; i++ {
 		res[i] = uints.NewU8(temp[i])
+	}
+	return res
+}
+
+func ConcatMultipleSlices[T any](slices ...[]T) []T {
+	var totalLen int
+
+	for _, s := range slices {
+		totalLen += len(s)
+	}
+
+	result := make([]T, totalLen)
+
+	var i int
+
+	for _, s := range slices {
+		i += copy(result[i:], s)
+	}
+
+	return result
+}
+
+func ArrayU8toU64Circuit(uapi *uints.BinaryField[uints.U64], a []uints.U8) []uints.U64 {
+	n := len(a)
+	n2 := (n + (8-n%8)%8)
+	temp := make([]uints.U8, n2)
+	copy(temp[:], a[:])
+	res := make([]uints.U64, n2/8)
+	for i := 0; i < n2/8; i++ {
+		res[i] = uapi.PackLSB(temp[(8 * i):(8*i + 8)]...)
 	}
 	return res
 }

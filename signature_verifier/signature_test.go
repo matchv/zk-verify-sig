@@ -96,7 +96,7 @@ func (circuit *CircuitSHA) Define(api frontend.API) error {
 	for i := 0; i < 64; i++ {
 		med[i] = circuit.Pre[i].Val
 	}
-	k := SHA2_512_MODORD(api, med[:])
+	k := SHA2_512_MODORDWithHints(api, med[:])
 	api.Println(k.V[0], " vs ", circuit.K.V[0])
 	api.Println(k.V[1], " vs ", circuit.K.V[1])
 	curve_ed25519.AssertEqualElementO(k, circuit.K, api)

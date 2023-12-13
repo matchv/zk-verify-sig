@@ -83,7 +83,7 @@ func TestSignatureBatch(t *testing.T) {
 }
 
 func BatchCompressSample(t *testing.T, circuit Interface) {
-	nval := len(circuit.GetA())
+	nval := len(circuit.GetSignatures())
 	msg := make([][MLAR]byte, nval)
 	sk := make([][]byte, nval)
 	for nv := 0; nv < nval; nv++ {
