@@ -1,39 +1,68 @@
 package signature_verifier
 
 import (
-	"fmt"
 	"math/big"
 
+	"github.com/consensys/gnark/constraint/solver"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/math/uints"
 	//csha3 "golang.org/x/crypto/sha2"
 )
 
-// / len(input) <= 895
-
 func SHA2_512Circuit(uapi *uints.BinaryField[uints.U64], api frontend.API, input []uints.U8) [64]uints.U8 {
 	n := len(input)
 	L := n * 8
-	fmt.Println("n = ", n)
-	input8 := make([]uints.U8, 128)
+	n8 := (n + 127) / 128 * 128
+	input8 := make([]uints.U8, n8)
 	copy(input8, input)
 	input8[n] = uints.NewU8(0x80)
-	for i := 127; i >= 112; i-- {
+	for i := n8 - 1; i >= n8-16; i-- {
 		input8[i] = uints.NewU8(uint8(L % 256))
 		L = L / 256
 	}
-	for i := n + 1; i < 122; i++ {
+	for i := n + 1; i < n8-16; i++ {
 		input8[i] = uints.NewU8(0)
 	}
-	input64 := ArrayU8toU64Circuit(uapi, input8)
 	h, k := sha2_512_constants()
-	//api.Println(len(input64))
-	//fmt.Println(input64)
+	for i := 0; i*128 < n8; i++ {
+		h = SHA2_512_block(uapi, api, h, [128]uints.U8(input8[i*128:(i+1)*128]), k)
+	}
+
+	res := make([]uints.U8, 0, 64)
+	for i := 0; i < 8; i++ {
+		res = append(res, uapi.UnpackMSB(h[i])...)
+	}
+	return [64]uints.U8(res)
+}
+
+func init() {
+	solver.RegisterHint(HintDivMod64bits)
+}
+
+func HintDivMod64bits(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
+	a := inputs[0]
+	pow := big.NewInt(0).Exp(big.NewInt(2), big.NewInt(64), nil)
+	result[0], result[1] = big.NewInt(0).DivMod(a, pow, big.NewInt(0))
+	return nil
+}
+
+func Uint64AddCircuit(uapi *uints.BinaryField[uints.U64], api frontend.API, a ...uints.U64) uints.U64 {
+	va := make([]frontend.Variable, len(a))
+	for i := range a {
+		va[i] = uapi.ToValue(a[i])
+	}
+	vres := api.Add(va[0], va[1], va[2:]...)
+	ret, _ := api.Compiler().NewHint(HintDivMod64bits, 2, vres)
+	c, r := ret[0], ret[1]
+	pow := frontend.Variable(big.NewInt(0).Exp(big.NewInt(2), big.NewInt(64), nil))
+	api.AssertIsEqual(vres, api.Add(r, api.Mul(c, pow)))
+	return uapi.ValueOf(r)
+}
+
+func SHA2_512_block(uapi *uints.BinaryField[uints.U64], api frontend.API, h [8]uints.U64, input8 [128]uints.U8, k [80]uints.U64) [8]uints.U64 {
+	input64 := ArrayU8toU64Circuit(uapi, input8[:])
 	var w [80]uints.U64
 	copy(w[:16], input64)
-	for i := len(input64); i < 80; i++ {
-		w[i] = uints.NewU64(0)
-	}
 	for i := 16; i < 80; i++ {
 		s01 := uapi.Lrot(w[i-15], -1)
 		s02 := uapi.Lrot(w[i-15], -8)
@@ -41,7 +70,7 @@ func SHA2_512Circuit(uapi *uints.BinaryField[uints.U64], api frontend.API, input
 		s0 := uapi.Xor(s01, s02, s03)
 
 		s11 := uapi.Lrot(w[i-2], -19)
-		s12 := uapi.Lrot(w[i-2], -3)
+		s12 := uapi.Lrot(w[i-2], -61)
 		s13 := uapi.Rshift(w[i-2], 6)
 		s1 := uapi.Xor(s11, s12, s13)
 
@@ -53,7 +82,7 @@ func SHA2_512Circuit(uapi *uints.BinaryField[uints.U64], api frontend.API, input
 	for i := 0; i < 80; i++ {
 		S01 := uapi.Lrot(a, -28)
 		S02 := uapi.Lrot(a, -34)
-		S03 := uapi.Lrot(a, -29)
+		S03 := uapi.Lrot(a, -39)
 		S0 := uapi.Xor(S01, S02, S03)
 
 		S11 := uapi.Lrot(e, -14)
@@ -85,34 +114,8 @@ func SHA2_512Circuit(uapi *uints.BinaryField[uints.U64], api frontend.API, input
 	h[5] = Uint64AddCircuit(uapi, api, h[5], f)
 	h[6] = Uint64AddCircuit(uapi, api, h[6], g)
 	h[7] = Uint64AddCircuit(uapi, api, h[7], hh)
-
-	res := make([]uints.U8, 0, 64)
-	for i := 0; i < 8; i++ {
-		res = append(res, uapi.UnpackLSB(h[i])...)
-	}
-	return [64]uints.U8(res)
+	return h
 }
-
-func HintDivMod64bits(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
-	a := inputs[0]
-	pow := big.NewInt(0).Exp(big.NewInt(2), big.NewInt(64), nil)
-	result[0], result[1] = big.NewInt(0).DivMod(a, pow, big.NewInt(0))
-	return nil
-}
-
-func Uint64AddCircuit(uapi *uints.BinaryField[uints.U64], api frontend.API, a ...uints.U64) uints.U64 {
-	va := make([]frontend.Variable, len(a))
-	for i := range a {
-		va[i] = uapi.ToValue(a[i])
-	}
-	vres := api.Add(va[0], va[1], va[2:]...)
-	ret, _ := api.Compiler().NewHint(HintDivMod64bits, 2, vres)
-	c, r := ret[0], ret[1]
-	pow := frontend.Variable(big.NewInt(0).Exp(big.NewInt(2), big.NewInt(64), nil))
-	api.AssertIsEqual(vres, api.Add(r, api.Mul(c, pow)))
-	return uapi.ValueOf(r)
-}
-
 func sha2_512_constants() ([8]uints.U64, [80]uints.U64) {
 	h := [8]uints.U64{
 		uints.NewU64(0x6a09e667f3bcc908),

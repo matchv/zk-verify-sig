@@ -315,7 +315,7 @@ func ArrayU8toU64Circuit(uapi *uints.BinaryField[uints.U64], a []uints.U8) []uin
 	copy(temp[:], a[:])
 	res := make([]uints.U64, n2/8)
 	for i := 0; i < n2/8; i++ {
-		res[i] = uapi.PackLSB(temp[(8 * i):(8*i + 8)]...)
+		res[i] = uapi.PackMSB(temp[(8 * i):(8*i + 8)]...)
 	}
 	return res
 }

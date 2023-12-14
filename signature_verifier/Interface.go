@@ -5,8 +5,6 @@ import (
 	"math/big"
 
 	crand "crypto/rand"
-	csha256 "crypto/sha256"
-	csha512 "crypto/sha512"
 
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/math/uints"
@@ -46,18 +44,10 @@ func BuildRandom[C Interface](nuevo func() C) func() C {
 }
 
 func InputToCircuit(circuit Interface, R []curve_ed25519.Point, S []*big.Int, A []curve_ed25519.Point, msg [][MLAR]byte) Interface {
-	Sha256 := csha256.New()
-
 	nval := len(A)
 	tSig := make([]Signature, nval)
 	for nv := 0; nv < nval; nv++ {
-		Sha512 := csha512.New()
 		tSig[nv].SetAll(R[nv], S[nv], A[nv], msg[nv])
-		Sha512.Write(R[nv].CompressForm())
-		Sha512.Write(A[nv].CompressForm())
-		Sha512.Write(msg[nv][:])
-		tempH := Sha512.Sum(nil)
-		Sha256.Write(tempH)
 	}
 	circuit.SetSignatures(tSig)
 	return circuit

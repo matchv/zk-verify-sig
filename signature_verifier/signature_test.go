@@ -195,3 +195,87 @@ func TestBachSignatureCoincidence(t *testing.T) {
 	assert.Equal(t, A, A2)
 
 }
+
+type CircuitArrayU8ToArrayU64 struct {
+	Ori  [64]uints.U8 `gnark:",public"`
+	True [8]uints.U64 `gnark:",public"`
+}
+
+func (circuit *CircuitArrayU8ToArrayU64) Define(api frontend.API) error {
+	uapi, _ := uints.New[uints.U64](api)
+	Loc := ArrayU8toU64Circuit(uapi, circuit.Ori[:])
+	for i := 0; i < 8; i++ {
+		api.Println(uapi.ToValue(Loc[i]), " vs ", uapi.ToValue(circuit.True[i]))
+	}
+	for i := 0; i < 8; i++ {
+		uapi.AssertEq(circuit.True[i], Loc[i])
+	}
+	return nil
+}
+
+func TestArrayU8ToArrayU64(t *testing.T) {
+	nt := 10
+	for nv := 0; nv < nt; nv++ {
+		circuit := new(CircuitArrayU8ToArrayU64)
+		ori := make([]byte, 64)
+		crand.Read(ori[:])
+		for i := 0; i < 64; i++ {
+			circuit.Ori[i] = uints.NewU8(ori[i])
+		}
+		True := make([]uint64, 8)
+		for i := 0; i < 8; i++ {
+			for j := 0; j < 8; j++ {
+				True[i] = True[i]*256 + uint64(ori[i*8+j])
+			}
+			circuit.True[i] = uints.NewU64(True[i])
+		}
+		assert := test.NewAssert(t)
+		assert.NoError(test.IsSolved(circuit, circuit, ecc.BN254.ScalarField()))
+	}
+}
+
+type SignatureCircuit struct {
+	Rc  [32]uints.U8   `gnark:",public"`
+	Sc  [32]uints.U8   `gnark:",public"`
+	Ac  [32]uints.U8   `gnark:",public"`
+	Msg [MLAR]uints.U8 `gnark:",public"`
+	Sig Signature      `gnark:",public"`
+}
+
+func (circuit *SignatureCircuit) Define(api frontend.API) error {
+	uapi, _ := uints.New[uints.U64](api)
+	Rc, Sc, Ac, Msg := circuit.Sig.GetAllCircuit(uapi, api)
+	fmt.Println("Compare Rc")
+	for i := 0; i < 32; i++ {
+		uapi.ByteAssertEq(circuit.Rc[i], Rc[i])
+	}
+	fmt.Println("Compare Sc")
+	for i := 0; i < 32; i++ {
+		uapi.ByteAssertEq(circuit.Sc[i], Sc[i])
+	}
+	fmt.Println("Compare Ac")
+	for i := 0; i < 32; i++ {
+		uapi.ByteAssertEq(circuit.Ac[i], Ac[i])
+	}
+	fmt.Println("Compare Msg")
+	for i := 0; i < MLAR; i++ {
+		uapi.ByteAssertEq(circuit.Msg[i], Msg[i])
+	}
+	return nil
+}
+func TestSignatureInput(t *testing.T) {
+	circuit := new(SignatureCircuit)
+	ntest := 50
+	assert := test.NewAssert(t)
+	R, S, A, M := RandomInput(ntest)
+	for nt := 0; nt < ntest; nt++ {
+		circuit.Rc = [32]uints.U8(R[nt].CompressFormCircuit())
+		circuit.Sc = [32]uints.U8(BigIntToUint8(S[nt]))
+		circuit.Ac = [32]uints.U8(A[nt].CompressFormCircuit())
+		for i := 0; i < MLAR; i++ {
+			circuit.Msg[i] = uints.NewU8(M[nt][i])
+		}
+		circuit.Sig.SetAll(R[nt], S[nt], A[nt], M[nt])
+		assert.NoError(test.IsSolved(circuit, circuit, ecc.BN254.ScalarField()))
+	}
+}

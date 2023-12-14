@@ -36,3 +36,13 @@ func TestRandomAC(t *testing.T) {
 	RandomAC[*Circuit48](t, NT, BuildRandom[*Circuit48](NewCircuit48))
 	RandomAC[*Circuit64](t, NT, BuildRandom[*Circuit64](NewCircuit64))
 }
+
+func TestSwapRAWA(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		R, S, A, Msg := RandomInput(1)
+		R, A = A, R
+		item := InputToCircuit(NewCircuit(), R, S, A, Msg)
+		assert := test.NewAssert(t)
+		assert.Error(test.IsSolved(item, item, ecc.BN254.ScalarField()))
+	}
+}
