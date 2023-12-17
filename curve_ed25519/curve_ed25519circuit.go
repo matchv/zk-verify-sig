@@ -146,9 +146,8 @@ func init() {
 
 func HintGetX(_ *big.Int, inputs []*big.Int, result []*big.Int) error {
 	b := inputs[31].Cmp(big.NewInt(128))
-	inputs[31].Mod(inputs[31], big.NewInt(128))
-	Y := big.NewInt(0)
-	for i := 31; i >= 0; i-- {
+	Y := big.NewInt(0).Mod(inputs[31], big.NewInt(128))
+	for i := 30; i >= 0; i-- {
 		Y.Mul(Y, big.NewInt(256))
 		Y.Add(Y, inputs[i])
 	}

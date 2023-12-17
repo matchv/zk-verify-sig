@@ -299,12 +299,14 @@ func ConcatMultipleSlices[T any](slices ...[]T) []T {
 
 	result := make([]T, totalLen)
 
-	var i int
+	var i int = 0
 
 	for _, s := range slices {
-		i += copy(result[i:], s)
+		for j := 0; j < len(s); j++ {
+			result[i] = s[j]
+			i++
+		}
 	}
-
 	return result
 }
 

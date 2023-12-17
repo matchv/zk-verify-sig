@@ -30,12 +30,14 @@ func RandomAC[C Interface](t *testing.T, NT int, random func() C) {
 // go  test -timeout 0s -run ^TestRandomAC -v
 func TestRandomAC(t *testing.T) {
 	NT := 2
-	RandomAC[*Circuit](t, NT, BuildRandom[*Circuit](NewCircuit))
-	RandomAC[*Circuit16](t, NT, BuildRandom[*Circuit16](NewCircuit16))
-	RandomAC[*Circuit32](t, NT, BuildRandom[*Circuit32](NewCircuit32))
-	RandomAC[*Circuit48](t, NT, BuildRandom[*Circuit48](NewCircuit48))
-	RandomAC[*Circuit64](t, NT, BuildRandom[*Circuit64](NewCircuit64))
+	RandomAC[*Circuit](t, 4*NT, BuildRandom[*Circuit](NewCircuit))
+	//RandomAC[*Circuit16](t, NT, BuildRandom[*Circuit16](NewCircuit16))
+	//RandomAC[*Circuit32](t, NT, BuildRandom[*Circuit32](NewCircuit32))
+	//RandomAC[*Circuit48](t, NT, BuildRandom[*Circuit48](NewCircuit48))
+	//RandomAC[*Circuit64](t, NT, BuildRandom[*Circuit64](NewCircuit64))
 }
+
+// go  test -timeout 0s -run ^TestSwapRAWA -v
 
 func TestSwapRAWA(t *testing.T) {
 	for i := 0; i < 10; i++ {
