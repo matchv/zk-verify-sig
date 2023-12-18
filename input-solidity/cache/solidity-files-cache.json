@@ -1,0 +1,56 @@
+{
+  "_format": "ethers-rs-sol-cache-3",
+  "paths": {
+    "artifacts": "abi",
+    "build_infos": "abi/build-info",
+    "sources": "solidity/test/src/Verifier.sol",
+    "tests": "test",
+    "scripts": "script",
+    "libraries": [
+      "lib"
+    ]
+  },
+  "files": {
+    "solidity/test/src/Verifier.sol": {
+      "lastModificationDate": 1702761837724,
+      "contentHash": "f29bd8cd59ea710004a4b7f3b8fe0085",
+      "sourceName": "solidity/test/src/Verifier.sol",
+      "solcConfig": {
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "useLiteralContent": false,
+            "bytecodeHash": "ipfs",
+            "appendCBOR": true
+          },
+          "outputSelection": {
+            "*": {
+              "": [
+                "ast"
+              ],
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ]
+            }
+          },
+          "evmVersion": "paris",
+          "libraries": {}
+        }
+      },
+      "imports": [],
+      "versionRequirement": "^0.8.0",
+      "artifacts": {
+        "Verifier": {
+          "0.8.19+commit.7dd6d404.Darwin.appleclang": "Verifier.sol/Verifier.json"
+        }
+      }
+    }
+  }
+}

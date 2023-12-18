@@ -27,7 +27,7 @@ func RandomAC[C Interface](t *testing.T, NT int, random func() C) {
 	}
 }
 
-// go  test -timeout 0s -run ^TestRandomAC -v
+// go  test -timeout 0s -run ^TestRandomAC -v -tags=debug
 func TestRandomAC(t *testing.T) {
 	NT := 2
 	RandomAC[*Circuit](t, 4*NT, BuildRandom[*Circuit](NewCircuit))

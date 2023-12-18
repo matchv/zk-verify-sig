@@ -76,7 +76,7 @@ func TimerGrooth16[C Interface](t *testing.T, name string, New func() C) string 
 
 }
 
-// go  test -timeout 0s -run ^TestTimeGrooth16 -v
+// go  test -timeout 0s -run ^TestTimeGrooth16 -v -tags=debug
 func TestTimeGrooth16(t *testing.T) {
 	out := ""
 	out = out + TimerGrooth16[*Circuit](t, "NVAL = 1", BuildRandom[*Circuit](NewCircuit))
