@@ -17,7 +17,9 @@ func NewCircuit48() *Circuit48 {
 }
 
 func (circuit *Circuit48) GetSignatures() []Signature {
-	return circuit.Signatures[:]
+	res := make([]Signature, 48)
+	copy(res, circuit.Signatures[:])
+	return res
 }
 
 func (circuit *Circuit48) SetSignatures(value []Signature) {

@@ -1,0 +1,14 @@
+// BEGIN: Test SetAll
+function testSetAll() public {
+  // Crea una instancia del contrato
+  MyContract contract = new MyContract();
+
+  // Llama a la función SetAll con algunos valores
+  contract.SetAll(10, 20, 30);
+
+  // Comprueba que los valores se hayan establecido correctamente
+  Assert.equal(contract.value1(), 10, "El valor1 no se estableció correctamente");
+  Assert.equal(contract.value2(), 20, "El valor2 no se estableció correctamente");
+  Assert.equal(contract.value3(), 30, "El valor3 no se estableció correctamente");
+}
+// END: Test SetAll
