@@ -1,6 +1,6 @@
 module ed25519
 
-go 1.21.5
+go 1.23
 
 require (
 	github.com/consensys/gnark-crypto v0.12.2-0.20231208203441-d4eab6ddd2af
